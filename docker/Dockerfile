@@ -11,5 +11,5 @@ WORKDIR ${PYKLB_ROOT}
 RUN git clone ${PYKLB_REPOSITORY} . && \
     git checkout ${PYKLB_REVISION}
 RUN python setup.py bdist_wheel
-RUN pip install dist/pyklb-0.0.3.dev0-cp27-cp27mu-linux_x86_64.whl
-ENV PYTHONPATH ${PYKLB_ROOT}:$PYTHONPATH
+ENV PYTHONPATH=${PYKLB_ROOT}/build/lib.linux-x86_64-2.7:${PYTHONPATH}
+RUN cp build/lib/libklb.so /lib

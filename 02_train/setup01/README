@@ -1,0 +1,3 @@
+Create the network:
+
+  run_docker -d funkey/mala:v0.1-pre1 python mknet.py

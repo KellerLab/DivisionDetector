@@ -1,4 +1,4 @@
-FROM funkey/gunpowder:v0.3-pre6
+FROM funkey/gunpowder:v0.3-pre7
 LABEL maintainer jfunke@iri.upc.edu
 
 # install python wrapper for KLB reader

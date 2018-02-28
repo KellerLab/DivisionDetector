@@ -1,5 +1,12 @@
-import os
+from __future__ import print_function
+import sys
 from gunpowder import *
+from gunpowder.tensorflow import *
+import malis
+import os
+import math
+import json
+import tensorflow as tf
 
 data_dir = '../../01_data/140521'
 samples = [
@@ -28,7 +35,11 @@ def train_until(max_iteration):
     divisions = PointsKey('DIVISIONS')
     division_balls = ArrayKey('DIVISION_BALLS')
     prediction = ArrayKey('DIVISION_PREDICTION')
-    loss_gradient = ArrayKey('DIVISION_PREDICTION')
+    loss_gradient = ArrayKey('DIVISION_PREDICTION_loss')
+
+    request = BatchRequest()
+    request.add(raw, Coordinate((200, 200, 200)))
+    request.add(division_balls, Coordinate((200, 200, 200)))
 
     sources = tuple(
 
@@ -54,15 +65,49 @@ def train_until(max_iteration):
     )
 
     pipeline = (
+        
         sources +
+        
+
+
         RandomProvider() +
+
+
+        RasterizePoints(
+        divisions,
+        division_balls,
+        raster_settings=RasterizationSettings(ball_radius=20)) +
+
         # TODO:
         # * augment
         # * pre-cache
-        RasterizePoints(
-            divisions,
-            division_balls,
-            raster_settings=RasterizationSettings(ball_radius=20)) +
+        
+             # Elastically deform all arrays in the batch.
+        ElasticAugment([10,6,6], [1,1,1], [0,math.pi/2.0], subsample=8) +
+
+        # Flip and rotate.
+        SimpleAugment(transpose_only_xy=True) +
+
+        # Add some intensity changes.
+        IntensityAugment(raw, 0.9, 1.1, -0.1, 0.1, z_section_wise=True) +
+        # Create a scale map to balance the gradient contribution between the
+        # positive and negative samples.
+        #BalanceLabels(
+        #    labels=gt_labels,
+        #    scales=loss_weights) +
+
+        # Move raw values to [-1, 1].
+        IntensityScaleShift(raw, 2,-1) +
+        
+        # Precache batches from the pipeline above in several processes. This is
+        # useful to keep the Train node busy, such that it never has to wait for
+        # IO and augmentations.
+        
+        # PreCache(
+        #     cache_size=40,
+        #     num_workers=10) +
+    
+    
         Train(
             # The network to use.
             'unet',
@@ -85,6 +130,7 @@ def train_until(max_iteration):
             gradients={
                 net_io_names['labels']: loss_gradient
             }) +
+        
         Snapshot({
             raw: 'volumes/raw',
             division_balls: 'volumes/divisions'
@@ -93,11 +139,9 @@ def train_until(max_iteration):
         PrintProfilingStats()
     )
 
-    request = BatchRequest()
-    request.add(raw, Coordinate((200, 200, 200)))
-    request.add(division_balls, Coordinate((200, 200, 200)))
 
-    with build(train_pipeline) as b:
+
+    with build(pipeline) as b:
 
         print("Starting training...")
 
@@ -106,6 +150,6 @@ def train_until(max_iteration):
             b.request_batch(request)
 
 if __name__ == "__main__":
-
-    set_verbose(True)
-    train_until(1)
+    set_verbose(False)
+    iteration = int(sys.argv[1])
+    train_until(iteration)

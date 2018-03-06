@@ -10,8 +10,7 @@ usage() {
   echo "    -d  Docker image to use to execute <command>. The docker container";
   echo "        will have";
   echo "            /groups";
-  echo "            /nrs";
-  echo "            /scratch";
+  echo "            /media/X";
   echo "        available.";
   echo;
   echo "    -p  Ports to expose, see 'man docker run'.";
@@ -95,11 +94,9 @@ nvidia-docker \
   --rm \
   --cgroup-parent=$(cat /proc/self/cpuset) \
   --name ${CONTAINER_NAME} \
-  -e HOME="$HOME" \
-  -u `id -u $USER`:`id -g $USER` \
+  -e HOME="/home/" \
   -v /groups:/groups:shared \
-  -v /nrs:/nrs:shared \
-  -v /scratch:/scratch:shared \
+  -v /media/X:/media/X:shared \
   -w ${WORK_DIR} \
   ${ENVI} \
   ${PORTS} \

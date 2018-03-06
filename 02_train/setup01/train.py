@@ -7,14 +7,15 @@ import os
 import math
 import json
 import tensorflow as tf
+import numpy as np
 
 data_dir = '../../01_data/140521'
 samples = [
-    '100',
+    # '100', # division points seem to lie outside of volume
     '120',
     '240',
     '250',
-    # '350',
+    # '350', # no point annotation for this volume (got 360)
     '400',
 ]
 
@@ -31,121 +32,121 @@ def train_until(max_iteration):
     with open('net_io_names.json', 'r') as f:
         net_io_names = json.load(f)
 
+    # define arrays and point sets we'll need
     raw = ArrayKey('RAW')
     divisions = PointsKey('DIVISIONS')
     division_balls = ArrayKey('DIVISION_BALLS')
+    loss_weights = ArrayKey('LOSS_WEIGHTS')
     prediction = ArrayKey('DIVISION_PREDICTION')
-    loss_gradient = ArrayKey('DIVISION_PREDICTION_loss')
+    loss_gradient = ArrayKey('DIVISION_PREDICTION_LOSS')
+    # a point set to ensure we have at least on division in the center of the
+    # output
+    divisions_center = PointsKey('DIVISIONS_CENTER')
+
+    voxel_size = Coordinate((5, 1, 1))
+    input_size = Coordinate((74, 324, 324))*voxel_size
+    output_size = Coordinate((10, 36, 36))*voxel_size
 
     request = BatchRequest()
-    request.add(raw, Coordinate((200, 200, 200)))
-    request.add(division_balls, Coordinate((200, 200, 200)))
+    request.add(raw, input_size)
+    request.add(division_balls, output_size)
+    # add divisions_center with a small ROI
+    request.add(divisions_center, Coordinate((10, 10, 10)))
+
+    snapshot_request = BatchRequest({
+        prediction: request[division_balls],
+        loss_gradient: request[division_balls],
+        loss_weights: request[division_balls],
+    })
 
     sources = tuple(
-
         (
+            # provide raw
             KlbSource(
                 os.path.join(
                     data_dir,
                     'SPM00_TM000%s_CM00_CM01_CHN00.fusedStack.corrected.shifted.klb'%sample),
                 raw,
-                ArraySpec(interpolatable=True)),
+                ArraySpec(
+                    interpolatable=True,
+                    voxel_size=voxel_size)),
+
+            # provide divisions
             CsvPointsSource(
                 os.path.join(
                     data_dir,
                     'divisions_%s.txt'%sample),
-                divisions) +
-            Pad({divisions: None})
+                divisions,
+                scale=voxel_size) +
+            Pad({divisions: None}),
+
+            # provide divisions_center
+            CsvPointsSource(
+                os.path.join(
+                    data_dir,
+                    'divisions_%s.txt'%sample),
+                divisions_center,
+                scale=voxel_size) +
+            Pad({divisions_center: None})
         ) +
         MergeProvider() +
-        Normalize(raw, 1.0/500) +
-        RandomLocation(ensure_nonempty=divisions)
+        Normalize(raw) +
+        RandomLocation(ensure_nonempty=divisions_center)
 
         for sample in samples
     )
 
     pipeline = (
-        
         sources +
-        
-
-
         RandomProvider() +
-
-
-        RasterizePoints(
-        divisions,
-        division_balls,
-        raster_settings=RasterizationSettings(ball_radius=20)) +
-
-        # TODO:
-        # * augment
-        # * pre-cache
-        
-             # Elastically deform all arrays in the batch.
-        ElasticAugment([10,6,6], [1,1,1], [0,math.pi/2.0], subsample=8) +
-
-        # Flip and rotate.
+        ElasticAugment([5,10,10], [1,1,1], [0,math.pi/2.0], subsample=8) +
         SimpleAugment(transpose_only_xy=True) +
-
-        # Add some intensity changes.
-        IntensityAugment(raw, 0.9, 1.1, -0.1, 0.1, z_section_wise=True) +
-        # Create a scale map to balance the gradient contribution between the
-        # positive and negative samples.
-        #BalanceLabels(
-        #    labels=gt_labels,
-        #    scales=loss_weights) +
-
-        # Move raw values to [-1, 1].
-        IntensityScaleShift(raw, 2,-1) +
-        
-        # Precache batches from the pipeline above in several processes. This is
-        # useful to keep the Train node busy, such that it never has to wait for
-        # IO and augmentations.
-        
-        # PreCache(
-        #     cache_size=40,
-        #     num_workers=10) +
-    
-    
+        IntensityAugment(raw, 0.9, 1.1, -0.001, 0.001) +
+        RasterizePoints(
+            divisions,
+            division_balls,
+            array_spec=ArraySpec(voxel_size=voxel_size),
+            raster_settings=RasterizationSettings(ball_radius=5)) +
+        BalanceLabels(
+           labels=division_balls,
+           scales=loss_weights) +
+        PreCache(
+            cache_size=40,
+            num_workers=10) +
         Train(
-            # The network to use.
             'unet',
-            # Name of the optimzer.
             optimizer=net_io_names['optimizer'],
-            # Name of the operator that computes the loss.
             loss=net_io_names['loss'],
-            # Map inputs of the network to arrays we provide.
             inputs={
                 net_io_names['raw']: raw,
                 net_io_names['gt_labels']: division_balls,
+                net_io_names['loss_weights']: loss_weights
             },
-            # Map outputs of the network to arrays that will be created by
-            # Train.
             outputs={
                 net_io_names['labels']: prediction
             },
-            # Map gradients of outputs wrt to the loss to arrays that will be
-            # created by Train.
             gradients={
                 net_io_names['labels']: loss_gradient
             }) +
-        
         Snapshot({
-            raw: 'volumes/raw',
-            division_balls: 'volumes/divisions'
-        },
-        every=1) +
-        PrintProfilingStats()
+                raw: 'volumes/raw',
+                division_balls: 'volumes/divisions',
+                prediction: 'volumes/prediction',
+                loss_gradient: 'volumes/gradient',
+                loss_weights: 'volumes/loss_weights',
+            },
+            dataset_dtypes={
+                division_balls: np.float32
+            },
+            output_filename='snapshot_{iteration}.hdf',
+            every=100,
+            additional_request=snapshot_request) +
+        PrintProfilingStats(every=10)
     )
-
-
 
     with build(pipeline) as b:
 
         print("Starting training...")
-
-        # Request as many batches as the number of iterations.
         for i in range(max_iteration - trained_until):
             b.request_batch(request)
 

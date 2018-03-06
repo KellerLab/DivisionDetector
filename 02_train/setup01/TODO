@@ -1,0 +1,14 @@
+Features
+========
+
+• tensorboard support (see Train documentation)
+• 4D KLB source
+• 4D point source
+• 4D elastic augment
+• get more timestamps
+
+Misc
+====
+
+• winner-takes-all loss
+• distance to division loss

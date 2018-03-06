@@ -4,13 +4,12 @@ import json
 
 if __name__ == "__main__":
 
-    input_shape = (1, 58, 196, 196)
+    input_shape = (74, 324, 324)
 
     raw = tf.placeholder(tf.float32, shape=input_shape)
-    raw_batched = tf.reshape(raw, (1,) + input_shape)
+    raw_batched = tf.reshape(raw, (1, 1) + input_shape)
 
-    # might be better to downsample by [2,3,3] in the first layer
-    unet = mala.networks.unet(raw_batched, 12, 5, [[1,2,2],[2,2,2],[3,3,3]])
+    unet = mala.networks.unet(raw_batched, 12, 5, [[1,5,5],[3,3,3],[2,2,2]])
 
     labels_batched = mala.networks.conv_pass(
         unet,
@@ -23,14 +22,14 @@ if __name__ == "__main__":
     output_shape = output_shape_batched[2:] # strip the batch and channel dimension
 
     labels = tf.reshape(labels_batched, output_shape)
-
     gt_labels = tf.placeholder(tf.float32, shape=output_shape)
+    loss_weights = tf.placeholder(tf.float32, shape=output_shape)
 
     loss = tf.losses.mean_squared_error(
         gt_labels,
-        labels)
+        labels,
+        loss_weights)
 
-    # might have to adjust the learning rate
     opt = tf.train.AdamOptimizer(
         learning_rate=0.5e-4,
         beta1=0.95,
@@ -44,6 +43,7 @@ if __name__ == "__main__":
         'raw': raw.name,
         'labels': labels.name,
         'gt_labels': gt_labels.name,
+        'loss_weights': loss_weights.name,
         'loss': loss.name,
         'optimizer': optimizer.name}
     with open('net_io_names.json', 'w') as f:

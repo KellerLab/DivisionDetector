@@ -14,7 +14,7 @@ samples = [
     # '100', # division points seem to lie outside of volume
     '120',
     '240',
-    '250',
+    # '250', # division points seem to lie outside of volume
     # '350', # no point annotation for this volume (got 360)
     '400',
 ]

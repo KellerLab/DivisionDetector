@@ -78,6 +78,10 @@ def train_until(max_iteration):
         RandomLocation(
             ensure_nonempty=divisions,
             p_nonempty=0.9) +
+        # ensure that raw is non-zero
+        Reject(
+            mask=raw,
+            min_masked=0.00001) +
         ElasticAugment(
             control_point_spacing=[5,10,10],
             jitter_sigma=[1,1,1],

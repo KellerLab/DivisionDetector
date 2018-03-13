@@ -38,9 +38,6 @@ def train_until(max_iteration):
     division_peaks = ArrayKey('DIVISION_PEAKS')
     prediction = ArrayKey('DIVISION_PREDICTION')
     loss_gradient = ArrayKey('DIVISION_PREDICTION_LOSS')
-    # a point set to ensure we have at least on division in the center of the
-    # output
-    divisions_center = PointsKey('DIVISIONS_CENTER')
 
     voxel_size = Coordinate((1, 5, 1, 1))
     input_size = Coordinate((7, 74, 324, 324))*voxel_size
@@ -49,10 +46,6 @@ def train_until(max_iteration):
     request = BatchRequest()
     request.add(raw, input_size)
     request.add(division_peaks, output_size)
-    # add divisions_center with a smaller ROI than divisions
-    # (this is to ensure that there is a division somewhere in the output
-    # volume)
-    request.add(divisions_center, Coordinate((2, 8, 30, 30)))
 
     snapshot_request = BatchRequest({
         prediction: request[division_peaks],
@@ -78,21 +71,12 @@ def train_until(max_iteration):
                     'divisions.txt'),
                 divisions,
                 scale=voxel_size) +
-            Pad({divisions: None}),
-
-            # provide divisions_center
-            CsvPointsSource(
-                os.path.join(
-                    data_dir,
-                    'divisions.txt'),
-                divisions_center,
-                scale=voxel_size) +
-            Pad({divisions_center: None})
+            Pad({divisions: None})
         ) +
         MergeProvider() +
         Normalize(raw) +
         RandomLocation(
-            ensure_nonempty=divisions_center,
+            ensure_nonempty=divisions,
             p_nonempty=0.9) +
         # ensure that raw is non-zero
         Reject(
@@ -129,7 +113,11 @@ def train_until(max_iteration):
             },
             gradients={
                 net_io_names['labels']: loss_gradient
-            }) +
+            },
+            
+            summary = net_io_names['summary'],
+            log_dir ='logs',
+            ) +
         # increase intensity for visualization
         IntensityScaleShift(raw, scale=100.0, shift=0) +
         Snapshot({

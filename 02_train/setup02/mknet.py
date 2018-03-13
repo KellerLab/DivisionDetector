@@ -27,7 +27,8 @@ if __name__ == "__main__":
     loss = tf.losses.mean_squared_error(
         gt_labels,
         labels)
-
+    tf.summary.scalar('loss_total', loss)
+    merged = tf.summary.merge_all()
     opt = tf.train.AdamOptimizer(
         learning_rate=0.1e-5,
         beta1=0.95,
@@ -42,6 +43,7 @@ if __name__ == "__main__":
         'labels': labels.name,
         'gt_labels': gt_labels.name,
         'loss': loss.name,
-        'optimizer': optimizer.name}
+        'optimizer': optimizer.name,
+        'summary': merged.name}
     with open('net_io_names.json', 'w') as f:
         json.dump(names, f)

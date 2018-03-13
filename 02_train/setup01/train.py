@@ -9,13 +9,14 @@ import json
 import tensorflow as tf
 import numpy as np
 
+
 data_dir = '../../01_data/140521'
 samples = [
-    # '100', # division points seem to lie outside of volume
+    '100', 
     '120',
     '240',
-    # '250', # division points seem to lie outside of volume
-    # '350', # no point annotation for this volume (got 360)
+    '250', 
+    '360', 
     '400',
 ]
 
@@ -58,7 +59,6 @@ def train_until(max_iteration):
         loss_gradient: request[division_balls],
         loss_weights: request[division_balls],
     })
-
     sources = tuple(
         (
             # provide raw
@@ -91,7 +91,7 @@ def train_until(max_iteration):
         ) +
         MergeProvider() +
         Normalize(raw) +
-        RandomLocation(ensure_nonempty=divisions_center)
+        RandomLocation(ensure_nonempty=divisions_center, p_nonempty = 0.9)
 
         for sample in samples
     )
@@ -100,19 +100,22 @@ def train_until(max_iteration):
         sources +
         RandomProvider() +
         ElasticAugment([5,10,10], [1,1,1], [0,math.pi/2.0], subsample=8) +
-        SimpleAugment(transpose_only_xy=True) +
+        SimpleAugment(transpose_only=[1,2]) +
         IntensityAugment(raw, 0.9, 1.1, -0.001, 0.001) +
+        #convert from vector image to pixel image
         RasterizePoints(
             divisions,
             division_balls,
             array_spec=ArraySpec(voxel_size=voxel_size),
-            raster_settings=RasterizationSettings(ball_radius=5)) +
+            settings=RasterizationSettings(radius=5)) +
+        #balance affinity, should add it
         BalanceLabels(
            labels=division_balls,
            scales=loss_weights) +
         PreCache(
             cache_size=40,
             num_workers=10) +
+        
         Train(
             'unet',
             optimizer=net_io_names['optimizer'],
@@ -122,12 +125,21 @@ def train_until(max_iteration):
                 net_io_names['gt_labels']: division_balls,
                 net_io_names['loss_weights']: loss_weights
             },
+        
             outputs={
                 net_io_names['labels']: prediction
             },
             gradients={
                 net_io_names['labels']: loss_gradient
-            }) +
+            
+            },
+            #should be a tensor, not scalar
+            #we must generate a summary first
+                 
+            summary = net_io_names['summary'],
+            log_dir ='logs',
+            ) +
+            
         Snapshot({
                 raw: 'volumes/raw',
                 division_balls: 'volumes/divisions',

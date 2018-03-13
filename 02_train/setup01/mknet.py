@@ -29,22 +29,23 @@ if __name__ == "__main__":
         gt_labels,
         labels,
         loss_weights)
+    tf.summary.scalar('loss_total', loss)
 
     opt = tf.train.AdamOptimizer(
-        learning_rate=0.5e-4,
+        learning_rate=0.5e-6,
         beta1=0.95,
         beta2=0.999,
         epsilon=1e-8)
     optimizer = opt.minimize(loss)
-
+    merged = tf.summary.merge_all()
     tf.train.export_meta_graph(filename='unet.meta')
-
     names = {
         'raw': raw.name,
         'labels': labels.name,
         'gt_labels': gt_labels.name,
         'loss_weights': loss_weights.name,
         'loss': loss.name,
-        'optimizer': optimizer.name}
+        'optimizer': optimizer.name,
+        'summary': merged.name}
     with open('net_io_names.json', 'w') as f:
         json.dump(names, f)

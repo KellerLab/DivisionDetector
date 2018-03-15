@@ -34,7 +34,7 @@ if __name__ == "__main__":
     merged = tf.summary.merge_all()
 
     opt = tf.train.AdamOptimizer(
-        learning_rate=0.1e-5,
+        learning_rate=1e-5,
         beta1=0.95,
         beta2=0.999,
         epsilon=1e-8)

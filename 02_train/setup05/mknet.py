@@ -19,12 +19,12 @@ def focal_loss(labels, logits, gamma=2.0, alpha=0.25):
 
 if __name__ == "__main__":
 
-    input_shape = (7, 96, 188, 188)
+    input_shape = (7, 74, 324, 324)
 
     raw = tf.placeholder(tf.float32, shape=input_shape)
     raw_batched = tf.reshape(raw, (1,) + input_shape)
 
-    unet = mala.networks.unet(raw_batched, 12, 5, [[1,2,2],[2,2,2],[2,2,2]])
+    unet = mala.networks.unet(raw_batched, 12, 5, [[1,5,5],[3,3,3],[2,2,2]])
 
     logits_batched = mala.networks.conv_pass(
         unet,
@@ -58,9 +58,6 @@ if __name__ == "__main__":
 
     tf.train.export_meta_graph(filename='unet.meta')
 
-    print("input shape : %s"%(input_shape,))
-    print("output shape: %s"%(output_shape,))
-
     names = {
         'raw': raw.name,
         'logits': logits.name,
@@ -68,8 +65,6 @@ if __name__ == "__main__":
         'gt_labels': gt_labels.name,
         'loss': loss.name,
         'optimizer': optimizer.name,
-        'summary': merged.name,
-        'input_shape': input_shape,
-        'output_shape': output_shape}
-    with open('net_config.json', 'w') as f:
+        'summary': merged.name}
+    with open('net_io_names.json', 'w') as f:
         json.dump(names, f)

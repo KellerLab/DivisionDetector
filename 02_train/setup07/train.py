@@ -8,16 +8,25 @@ import math
 import json
 import tensorflow as tf
 import numpy as np
+#modify accepts inside RandomLocation to exclude one point for validation
 class RandomLocationExcludeTime(RandomLocation): #subclass, inherits from RandomLocation
     def __init__(self, raw, min_masked=0, mask=None, ensure_nonempty=None, p_nonempty=1.0, t=0):
-        super(RandomLocationExcludeTime, self).__init__(min_masked, mask, ensure_nonempty, p_nonempty)
+        super(RandomLocationExcludeTime, self).__init__(min_masked, mask,
+                                                        ensure_nonempty, p_nonempty)
         self.raw = raw
         self.t = t
     def accepts(self, request):
-        if not (request[self.raw].roi.get_begin()[0] <= self.t and
-                request[self.raw].roi.get_end()[0] > self.t):
-            return True
+        return not (request[self.raw].roi.get_begin()[0] <= self.t and
+                    request[self.raw].roi.get_end()[0] > self.t)
 data_dir = '../../01_data/140521'
+samples = [
+    # '100', # division points seem to lie outside of volume
+    '120',
+    # '240',
+    # '250', # division points seem to lie outside of volume
+    # '350', # no point annotation for this volume (got 360)
+    # '400',
+]
 
 def train_until(max_iteration):
 

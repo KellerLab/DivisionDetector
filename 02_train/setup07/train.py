@@ -8,7 +8,15 @@ import math
 import json
 import tensorflow as tf
 import numpy as np
-
+class RandomLocationExcludeTime(RandomLocation): #subclass, inherits from RandomLocation
+    def __init__(self, raw, min_masked=0, mask=None, ensure_nonempty=None, p_nonempty=1.0, t=0):
+        super(RandomLocationExcludeTime, self).__init__(min_masked, mask, ensure_nonempty, p_nonempty)
+        self.raw = raw
+        self.t = t
+    def accepts(self, request):
+        if not (request[self.raw].roi.get_begin()[0] <= self.t and
+                request[self.raw].roi.get_end()[0] > self.t):
+            return True
 data_dir = '../../01_data/140521'
 samples = [
     # '100', # division points seem to lie outside of volume
@@ -91,10 +99,14 @@ def train_until(max_iteration):
         ) +
         MergeProvider() +
         Normalize(raw) +
-        RandomLocation(
+        RandomLocationExcludeTime(raw=raw,
             ensure_nonempty=divisions_center,
-            p_nonempty=0.9) +
+            p_nonempty=0.9, t = 360) +
         # ensure that raw is non-zero
+        Reject(
+            mask=raw,
+            min_masked=0.00001) +
+        #ensure validation data is not used
         Reject(
             mask=raw,
             min_masked=0.00001) +
@@ -130,8 +142,8 @@ def train_until(max_iteration):
             gradients={
                 net_config['logits']: loss_gradient
             },
-            # summary = net_config['summary'],
-            # log_dir ='logs',
+             summary = net_config['summary'],
+             log_dir ='logs',
             ) +
         # increase intensity for visualization
         IntensityScaleShift(raw, scale=100.0, shift=0) +

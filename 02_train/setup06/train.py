@@ -10,14 +10,6 @@ import tensorflow as tf
 import numpy as np
 
 data_dir = '../../01_data/140521'
-samples = [
-    # '100', # division points seem to lie outside of volume
-    '120',
-    # '240',
-    # '250', # division points seem to lie outside of volume
-    # '350', # no point annotation for this volume (got 360)
-    # '400',
-]
 
 def train_until(max_iteration):
 

@@ -71,7 +71,7 @@ def predict(setup, iteration, sample, frame):
             },
             every=1,
             output_dir=os.path.join('processed', setup, '%d'%iteration),
-            output_filename=sample+'.hdf')
+            output_filename=sample+'_'+str(frame)+'.hdf')
     )
 
     with build(pipeline):

@@ -8,6 +8,9 @@ import math
 import json
 import tensorflow as tf
 import numpy as np
+
+data_dir = '../../01_data/140521'
+
 #modify accepts inside RandomLocation to exclude one point for validation
 class RandomLocationExcludeTime(RandomLocation): #subclass, inherits from RandomLocation
     def __init__(self, raw, min_masked=0, mask=None, ensure_nonempty=None, p_nonempty=1.0, t=0):
@@ -18,15 +21,6 @@ class RandomLocationExcludeTime(RandomLocation): #subclass, inherits from Random
     def accepts(self, request):
         return not (request[self.raw].roi.get_begin()[0] <= self.t and
                     request[self.raw].roi.get_end()[0] > self.t)
-data_dir = '../../01_data/140521'
-samples = [
-    # '100', # division points seem to lie outside of volume
-    '120',
-    # '240',
-    # '250', # division points seem to lie outside of volume
-    # '350', # no point annotation for this volume (got 360)
-    # '400',
-]
 
 def train_until(max_iteration):
 
@@ -100,14 +94,12 @@ def train_until(max_iteration):
         ) +
         MergeProvider() +
         Normalize(raw) +
-        RandomLocationExcludeTime(raw=raw,
+        RandomLocationExcludeTime(
+            raw=raw,
             ensure_nonempty=divisions_center,
-            p_nonempty=0.9, t = 360) +
+            p_nonempty=0.9,
+            t=360) +
         # ensure that raw is non-zero
-        Reject(
-            mask=raw,
-            min_masked=0.00001) +
-        #ensure validation data is not used
         Reject(
             mask=raw,
             min_masked=0.00001) +

@@ -13,3 +13,5 @@ net_config.json
 logs
 *.log
 *.pyc
+*.err
+*.out

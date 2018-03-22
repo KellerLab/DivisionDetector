@@ -12,3 +12,4 @@ net_io_names.json
 net_config.json
 logs
 *.log
+*.pyc

@@ -19,14 +19,6 @@ class RandomLocationExcludeTime(RandomLocation): #subclass, inherits from Random
         return not (request[self.raw].roi.get_begin()[0] <= self.t and
                     request[self.raw].roi.get_end()[0] > self.t)
 data_dir = '../../01_data/140521'
-samples = [
-    # '100', # division points seem to lie outside of volume
-    '120',
-    # '240',
-    # '250', # division points seem to lie outside of volume
-    # '350', # no point annotation for this volume (got 360)
-    # '400',
-]
 
 def train_until(max_iteration):
 

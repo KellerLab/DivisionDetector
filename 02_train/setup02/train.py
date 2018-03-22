@@ -67,7 +67,7 @@ def train_until(max_iteration):
             CsvPointsSource(
                 os.path.join(
                     data_dir,
-                    'divisions.txt'),
+                    'all_divisions.txt'),
                 divisions,
                 scale=voxel_size) +
             Pad({divisions: None}),
@@ -76,7 +76,7 @@ def train_until(max_iteration):
             CsvPointsSource(
                 os.path.join(
                     data_dir,
-                    'divisions.txt'),
+                    'all_divisions.txt'),
                 divisions_center,
                 scale=voxel_size) +
             Pad({divisions_center: None})

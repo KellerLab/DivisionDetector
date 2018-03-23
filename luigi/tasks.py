@@ -193,8 +193,8 @@ class ConfigTask(luigi.Task):
 
         threshold_string = ''
         if threshold is not None:
-            threshold_string = ('%f'%threshold).rstrip('0').rstrip('.')
-        basename = self.tag() + '_t=' + threshold_string
+            threshold_string = '_t=' + ('%f'%threshold).rstrip('0').rstrip('.')
+        basename = self.tag() + threshold_string
 
         return os.path.join(
                 base_dir,
@@ -271,12 +271,13 @@ class Evaluate(ConfigTask):
         log_err = self.output_basename(self.threshold) + '.err'
         res_file = self.output_basename(self.threshold) + '.json'
 
+        os.chdir(os.path.join(base_dir, '04_evaluate'))
         call([
             # 'run_lsf',
             # '-c', '2',
             # '-g', '0',
             # '-m', '10000',
-            'python', '-u', '../04_evaluate/evaluate.py', res_file, gt_file
+            'python', '-u', 'evaluate.py', res_file, gt_file
         ], log_out, log_err)
 
 class EvaluateCombinations(luigi.task.WrapperTask):

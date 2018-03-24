@@ -137,7 +137,7 @@ def train_until(max_iteration):
                 division_peaks: np.float32
             },
             output_filename='snapshot_{iteration}.hdf',
-            every=100,
+            every=1000,
             additional_request=snapshot_request) +
         PrintProfilingStats(every=10)
     )

@@ -240,10 +240,10 @@ class FindDivisions(ConfigTask):
 
         os.chdir(os.path.join(base_dir, '03_process'))
         call([
-            # 'run_lsf',
-            # '-c', '2',
-            # '-g', '0',
-            # '-m', '10000',
+            'run_lsf',
+            '-c', '2',
+            '-g', '1', # can't ask for 0
+            '-m', '100000',
             'python', '-u', 'find_divisions.py', self.output_basename() + '.config'
         ], log_out, log_err)
 

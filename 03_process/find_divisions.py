@@ -72,7 +72,7 @@ def find_divisions(setup, iteration, sample, frame, thresholds, output_basenames
         ds.attrs['resolution'] = resolution
 
     print("Storing results...")
-    for threshold, outfile_basename in zip(thresholds, outfile_basenames):
+    for threshold, outfile_basename in zip(thresholds, output_basenames):
 
         threshold_peaks = {
             label: {

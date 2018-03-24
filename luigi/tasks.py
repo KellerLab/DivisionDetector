@@ -277,7 +277,9 @@ class Evaluate(ConfigTask):
             # '-c', '2',
             # '-g', '0',
             # '-m', '10000',
-            'python', '-u', 'evaluate.py', res_file, gt_file
+            'python',
+            '-u', 'evaluate.py',
+            res_file, gt_file, str(self.parameters['frame'])
         ], log_out, log_err)
 
 class EvaluateCombinations(luigi.task.WrapperTask):

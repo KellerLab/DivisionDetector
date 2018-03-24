@@ -5,6 +5,7 @@ import h5py
 import numpy as np
 import json
 import sys
+import os
 
 # the minimal value to predict for a voxel to be considered part of a blob
 blob_prediction_threshold = 0.01
@@ -37,8 +38,14 @@ def find_peaks(predictions):
 
     return (peaks, labels)
 
-def find_divisions(prediction_filename, thresholds, output_basenames):
+def find_divisions(setup, iteration, sample, frame, thresholds, output_basenames, *args, **kwargs):
     '''Find all divisions in the predictions of a frame.'''
+
+    prediction_filename = os.path.join(
+        'processed',
+        setup,
+        str(iteration),
+        sample + '_' + str(frame) + '.hdf')
 
     print("Reading predictions...")
     with h5py.File(prediction_filename, 'r') as f:

@@ -1,0 +1,9 @@
+Evaluate a frame:
+
+  python evaluate.py <result_json> <gt_divisions> <frame>
+
+    result_json as created by find_divisions.py
+
+    gt_divisions text file containing points for all frames (as used for training)
+
+    frame the number of the frame

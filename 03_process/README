@@ -6,3 +6,6 @@ Predict a timeframe:
 
   run_docker -d funkey/division_detection:v0.1 python predict.py setup07 2000 140521 360
 
+Find divisions:
+
+  Call find_divisions from find_divisions.py (see documentation inside)

@@ -39,7 +39,35 @@ def find_peaks(predictions):
     return (peaks, labels)
 
 def find_divisions(setup, iteration, sample, frame, thresholds, output_basenames, *args, **kwargs):
-    '''Find all divisions in the predictions of a frame.'''
+    '''Find all divisions in the predictions of a frame.
+
+    Args:
+
+        setup (string):
+
+                The name of the setup.
+
+        iteration (int):
+
+                The training iteration.
+
+        sample (string):
+
+                The video to find divisions for.
+
+        frame (int):
+
+                The frame in the video to find divisions for.
+
+        thresholds (list of float):
+
+                Thresholds in the range [0, 1] to apply.
+
+        output_basenames (list of strings):
+
+                Basenames of the files to store the results in, one for each
+                threshold. The extension '.json' will be added to each basename.
+    '''
 
     prediction_filename = os.path.join(
         'processed',

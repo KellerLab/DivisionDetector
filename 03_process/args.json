@@ -1,0 +1,8 @@
+{
+"setup":"setup08",
+"iteration":100000,
+"sample":"140521",
+"frame":360,
+"thresholds": [0.2, 0.5, 0.8],
+"output_basenames": ["t0.2","t0.5","t0.8"]
+} 

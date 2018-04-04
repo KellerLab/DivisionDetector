@@ -112,13 +112,14 @@ if __name__ == "__main__":
 
     print("Read %d rec divisions"%len(rec_divisions))
 
+    voxel_size = (5, 1, 1)
     gt_divisions = {}
     gt_label = 1
     for line in open(gt_file, 'r'):
 
         tokens = line.split()
         if int(round(float(tokens[0]))) == frame:
-            center = tuple(float(x) for x in tokens[1:])
+            center = tuple(float(x)*r for x, r in zip(tokens[1:], voxel_size))
             gt_divisions[gt_label] = {
                 'center': center
             }

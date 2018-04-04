@@ -1,0 +1,40 @@
+140521_DivisionAnnotations_FullVolume.xlsx
+
+  • initial annotations
+  • supposedly full frame for 100 120 240 250 360 400
+
+  ⇒ full_divisions_t=*.txt (per frame)
+  ⇒ full_divisions.txt (all together)
+
+FalseDivisions.xlsx, TrueDivisions.xlsx
+
+  • sparse annotations of true and false annotations
+
+  ⇒ sparse_divisions.txt
+  ⇒ sparse_non-divisions.txt
+
+PointAnnotations.xlsx
+
+  • added 2018/04/04
+  • A is time
+  • B is cell division type:
+    1:    A     division
+    2:    B     division
+    3:    C     division (easy)
+    4:    D     division (hard)
+    5:    E     division (especially hard)
+    0:    W     not-division (possibly FP)
+    103:  CT    division (easy)
+    100:  WT    not-division (possibly FP)
+  • C, D, E is x, y, z
+  • F unclear
+
+  (via split_annotations.txt)
+  ⇒ sparse_divisions_2.txt
+  ⇒ sparse_non-divisions_2.txt
+
+All together
+
+  (via collect_all_annotations.txt)
+  ⇒ all_divisions.txt
+  ⇒ all_non-divisions.txt

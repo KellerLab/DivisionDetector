@@ -59,9 +59,15 @@ def evaluate(rec_divisions, gt_divisions):
         rec_divisions,
         gt_divisions)
 
-    print("Finding cost-minimal matches...")
-    matches = linear_sum_assignment(costs - np.amax(costs) - 1)
-    matches = zip(matches[0], matches[1])
+    if rec_divisions:
+
+        print("Finding cost-minimal matches...")
+        matches = linear_sum_assignment(costs - np.amax(costs) - 1)
+        matches = zip(matches[0], matches[1])
+
+    else:
+
+        matches = []
 
     filtered_matches = [
         (i,j, costs[i][j])
@@ -80,11 +86,18 @@ def evaluate(rec_divisions, gt_divisions):
     # matched = TP
     tp = len(filtered_matches)
 
-    precision = float(tp)/(tp + fp)
-    recall = float(tp)/(tp + fn)
-    fscore = 2.0*precision*recall/(precision + recall)
+    # all positives
+    n = len(gt_divisions)
+    assert tp + fn == n
 
-    return (precision, recall, fscore, fp, fn)
+    precision = float(tp)/(tp + fp) if tp + fp > 0 else 0.0
+    recall = float(tp)/(tp + fn) if tp + fn > 0 else 0.0
+    if precision + recall > 0:
+        fscore = 2.0*precision*recall/(precision + recall)
+    else:
+        fscore = 0
+
+    return (precision, recall, fscore, fp, fn, n)
 
 if __name__ == "__main__":
 
@@ -118,7 +131,7 @@ if __name__ == "__main__":
 
     print("Read %d GT divisions"%len(gt_divisions))
 
-    precision, recall, fscore, fp, fn = evaluate(rec_divisions, gt_divisions)
+    precision, recall, fscore, fp, fn, n = evaluate(rec_divisions, gt_divisions)
 
     result = {
         'divisions': rec_divisions,
@@ -127,7 +140,8 @@ if __name__ == "__main__":
             'recall': recall,
             'f-score': fscore,
             'fp': fp,
-            'fn': fn
+            'fn': fn,
+            'n': n
         }
     }
 

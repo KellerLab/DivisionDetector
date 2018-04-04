@@ -92,7 +92,7 @@ def find_divisions(setup, iteration, sample, frame, thresholds, output_basenames
 
         ds = f.create_dataset(
             'volumes/blobs',
-            data=labels,
+            data=labels[np.newaxis,:],
             dtype=np.uint64,
             compression='gzip')
 

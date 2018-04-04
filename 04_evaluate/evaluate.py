@@ -110,11 +110,6 @@ if __name__ == "__main__":
     with open(rec_file, 'r') as f:
         rec_divisions = json.load(f)['divisions']
 
-    # DEBUG, DELME
-    for k, v in rec_divisions.items():
-        c = rec_divisions[k]['center']
-        rec_divisions[k]['center'] = ((c[0] - 360.0), c[1]/5.0, c[2])
-
     print("Read %d rec divisions"%len(rec_divisions))
 
     gt_divisions = {}

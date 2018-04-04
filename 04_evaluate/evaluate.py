@@ -108,7 +108,8 @@ if __name__ == "__main__":
     print("Evaluating frame %d"%frame)
 
     with open(rec_file, 'r') as f:
-        rec_divisions = json.load(f)['divisions']
+        rec = json.load(f)
+    rec_divisions = dict(rec['divisions'])
 
     print("Read %d rec divisions"%len(rec_divisions))
 
@@ -129,8 +130,7 @@ if __name__ == "__main__":
 
     precision, recall, fscore, fp, fn, n = evaluate(rec_divisions, gt_divisions)
 
-    result = {
-        'divisions': rec_divisions,
+    rec.update({
         'scores': {
             'precision': precision,
             'recall': recall,
@@ -139,13 +139,14 @@ if __name__ == "__main__":
             'fn': fn,
             'n': n
         }
-    }
+    })
 
     with open(rec_file, 'w') as f:
-        json.dump(result, f)
+        json.dump(rec, f, indent=2)
 
     print("precision: %f"%precision)
     print("recall   : %f"%recall)
     print("f-score  : %f"%fscore)
     print("FPs      : %d"%fp)
     print("FNs      : %d"%fn)
+    print("n        : %d"%n)

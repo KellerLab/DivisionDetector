@@ -13,7 +13,15 @@ def predict(setup, iteration, sample, frame):
           "frame %d"%(setup, iteration, sample, frame))
 
     checkpoint = os.path.join('../02_train', setup, 'unet_checkpoint_%d'%iteration)
-    with open(os.path.join('../02_train', setup, 'net_config.json'), 'r') as f:
+    if not os.path.isfile(checkpoint + '.meta'):
+        checkpoint = os.path.join('../02_train', setup, 'train_net_checkpoint_%d'%iteration)
+    graph = os.path.join('../02_train', setup, 'test_net.meta')
+    if not os.path.isfile(graph):
+        graph = None
+    config = os.path.join('../02_train', setup, 'test_net_config.json')
+    if not os.path.isfile(config):
+        config = os.path.join('../02_train', setup, 'net_config.json')
+    with open(config, 'r') as f:
         net_config = json.load(f)
 
     voxel_size = Coordinate((1, 5, 1, 1))
@@ -43,9 +51,10 @@ def predict(setup, iteration, sample, frame):
     pipeline = (
         source +
         Normalize(raw) +
-        Pad({raw: context}) +
+        Pad(raw, context) +
         Predict(
             checkpoint,
+            graph=graph,
             inputs = {
                 net_config['raw']: raw,
             },

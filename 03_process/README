@@ -1,10 +1,10 @@
 Predict a timeframe:
 
-  run_docker -d funkey/division_detection:v0.1 python predict.py <setup> <iteration> <sample> <frame>
+  run_docker -d funkey/division_detection:v0.2 python predict.py <setup> <iteration> <sample> <frame>
 
   for example:
 
-  run_docker -d funkey/division_detection:v0.1 python predict.py setup07 2000 140521 360
+  run_docker -d funkey/division_detection:v0.2 python predict.py setup07 2000 140521 360
 
 Find divisions:
 

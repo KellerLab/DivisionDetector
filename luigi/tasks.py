@@ -94,7 +94,7 @@ class TrainTask(luigi.Task):
             base_dir,
             '02_train',
             str(self.setup),
-            'unet_checkpoint_%d.meta'%self.iteration)
+            'train_net_checkpoint_%d.meta'%self.iteration)
 
     def requires(self):
         if self.iteration == 2000:
@@ -265,6 +265,7 @@ class Evaluate(ConfigTask):
         gt_file = os.path.join(
             '../01_data/',
             self.parameters['sample'],
+            'point_annotations',
             'all_divisions.txt')
 
         log_out = self.output_basename(self.threshold) + '.out'

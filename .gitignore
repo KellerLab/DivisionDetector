@@ -10,9 +10,11 @@ net_iter*
 *checkpoint*
 net_io_names.json
 net_config.json
+*_config.json
 logs
 *.log
 *.pyc
 *.err
 *.out
 *.ipynb
+processed

@@ -2,6 +2,8 @@
 
   • initial annotations
   • supposedly full frame for 100 120 240 250 360 400
+  • in isotropic units for frames 100, 250, and 400, divided z by 5 for *.txt files below
+    ⇒ done with consolidate.py
 
   ⇒ full_divisions_t=*.txt (per frame)
   ⇒ full_divisions.txt (all together)
@@ -32,6 +34,15 @@ PointAnnotations.xlsx
   (via split_annotations.txt)
   ⇒ sparse_divisions_2.txt
   ⇒ sparse_non-divisions_2.txt
+
+140521__MoarTP360.xlsx, 140521_RandonNonsTP360.xlsx
+
+  • added 2018/04/16
+  • more divisions of 360, randomly selected non-divisions of 360
+
+  ⇒ added to full_divisions_t=360.txt
+  ⇒ updated full_divisions.txt
+  ⇒ sparse_non-divisions_3.txt
 
 All together
 

@@ -186,6 +186,7 @@ class ConfigTask(luigi.Task):
     def tag(self):
         tag = self.parameters['sample']
         tag += '_' + str(self.parameters['frame'])
+        tag += '_bpt=%.2f'%self.parameters['blob_prediction_threshold']
         # add more hyperparameters here, if needed
         return tag
 
@@ -244,7 +245,8 @@ class FindDivisions(ConfigTask):
             '-c', '2',
             '-g', '1', # can't ask for 0
             '-m', '100000',
-            'python', '-u', 'find_divisions.py', self.output_basename() + '.config'
+            'python', '-u', 'find_divisions.py',
+            self.output_basename() + '.config'
         ], log_out, log_err)
 
 class Evaluate(ConfigTask):

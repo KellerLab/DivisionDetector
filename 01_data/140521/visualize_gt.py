@@ -3,8 +3,19 @@ import sys
 from gunpowder import *
 import os
 import numpy as np
+import logging
+
+logger = logging.getLogger(__name__)
 
 data_dir = '.'
+
+class InspectPoints(BatchFilter):
+
+    def process(self, batch, request):
+
+        logger.info("For ROI %s found:", request[PointsKeys.DIVISIONS])
+        for point in batch.points[PointsKeys.DIVISIONS].data.items():
+            logger.info(point)
 
 def render_blobs(frame):
 
@@ -40,10 +51,12 @@ def render_blobs(frame):
             CsvPointsSource(
                 os.path.join(
                     data_dir,
+                    'point_annotations',
                     'all_divisions.txt'),
                 divisions,
                 scale=voxel_size) +
-            Pad({divisions: None})
+            InspectPoints() +
+            Pad(divisions, None)
         ) +
         MergeProvider() +
         Normalize(raw) +

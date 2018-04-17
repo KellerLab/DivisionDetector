@@ -7,13 +7,10 @@ import json
 import sys
 import os
 
-# the minimal value to predict for a voxel to be considered part of a blob
-blob_prediction_threshold = 0.01
-
 # the minimal size of a blob
 blob_size_threshold = 10
 
-def find_peaks(predictions):
+def find_peaks(predictions, blob_prediction_threshold):
 
     # smooth out "U-Net noise"
     # print("Median-filtering prediction...")
@@ -38,7 +35,16 @@ def find_peaks(predictions):
 
     return (peaks, labels)
 
-def find_divisions(setup, iteration, sample, frame, thresholds, output_basenames, *args, **kwargs):
+def find_divisions(
+        setup,
+        iteration,
+        sample,
+        frame,
+        blob_prediction_threshold,
+        thresholds,
+        output_basenames,
+        *args,
+        **kwargs):
     '''Find all divisions in the predictions of a frame.
 
     Args:
@@ -58,6 +64,10 @@ def find_divisions(setup, iteration, sample, frame, thresholds, output_basenames
         frame (int):
 
                 The frame in the video to find divisions for.
+
+        blob_prediction_threshold (float):
+
+                The prediction threshold to find blobs.
 
         thresholds (list of float):
 
@@ -83,7 +93,7 @@ def find_divisions(setup, iteration, sample, frame, thresholds, output_basenames
         resolution = ds.attrs['resolution']
 
     print("Finding peaks...")
-    peaks, labels = find_peaks(predictions)
+    peaks, labels = find_peaks(predictions, blob_prediction_threshold)
 
     with h5py.File(prediction_filename, 'r+') as f:
 

@@ -1,9 +1,13 @@
 Evaluate a frame:
 
-  python evaluate.py <result_json> <gt_divisions> <frame>
+  python evaluate.py <result_json> <gt_divisions> <gt_non-divisions> <frame> [<outfile>]
 
-    result_json as created by find_divisions.py
+    result_json: As created by find_divisions.py.
 
-    gt_divisions text file containing points for all frames (as used for training)
+    gt_divisions: Text file containing points for all frames (as used for training).
 
-    frame the number of the frame
+    gt_non-divisions: Text file containing points for all frames (as used for training).
+
+    frame: The number of the frame.
+
+    outfile Name of JSON file to store the results. If not given, use <result_json>.

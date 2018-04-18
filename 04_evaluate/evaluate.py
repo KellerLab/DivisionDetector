@@ -6,7 +6,13 @@ import numpy as np
 
 # maximal distance in world units to consider a detection to match with a
 # ground-truth annotation
-matching_threshold = 100
+#
+# setting it too high results in non-divisions being counted as false positives
+# setting it too low results in divisions being counted as false negatives
+#
+# 15 voxels (3 in z) seems to be a good radius that captures the area of a
+# single cell
+matching_threshold = 15
 
 def create_matching_costs(rec_divisions, gt_divisions):
 
@@ -53,11 +59,16 @@ def create_matching_costs(rec_divisions, gt_divisions):
 
     return matching_costs, rec_labels, gt_labels
 
-def evaluate(rec_divisions, gt_divisions):
+def evaluate(rec_divisions, gt_divisions, gt_nondivisions):
 
+    # create a dictionary of all annotations
+    gt_annotations = dict(gt_divisions)
+    gt_annotations.update(gt_nondivisions)
+
+    # create matching costs to all annotations
     costs, rec_labels, gt_labels = create_matching_costs(
         rec_divisions,
-        gt_divisions)
+        gt_annotations)
 
     if rec_divisions:
 
@@ -70,25 +81,39 @@ def evaluate(rec_divisions, gt_divisions):
         matches = []
 
     filtered_matches = [
-        (i,j, costs[i][j])
+        (rec_labels[i], gt_labels[j], costs[i][j])
         for (i,j) in matches
         if costs[i][j] <= matching_threshold
     ]
+    matched_rec_annotations = [ f[0] for f in filtered_matches ]
+    matched_gt_annotations = [ f[1] for f in filtered_matches ]
 
     print("%d matches found"%len(filtered_matches))
+    print(filtered_matches)
 
-    # unmatched in rec = FP
-    fp = len(rec_divisions) - len(filtered_matches)
+    # matched GT non-division = FP
+    fps = [ l for l in gt_nondivisions.keys() if l in matched_gt_annotations ]
+    fp = len(fps)
 
-    # unmatched in gt = FN
-    fn = len(gt_divisions) - len(filtered_matches)
+    # unmatched GT division = FN
+    fns = [ l for l in gt_divisions.keys() if l not in matched_gt_annotations ]
+    fn = len(fns)
 
-    # matched = TP
-    tp = len(filtered_matches)
+    # matched GT divisions = TP
+    tps = [ l for l in gt_divisions.keys() if l in matched_gt_annotations ]
+    tp = len(tps)
+
+    # unmatched GT non-divisions = TN
+    tns = [ l for l in gt_nondivisions.keys() if l not in matched_gt_annotations ]
+    tn = len(tns)
 
     # all positives
     n = len(gt_divisions)
     assert tp + fn == n
+
+    # all negatives
+    m = len(gt_nondivisions)
+    assert tn + fp == m
 
     precision = float(tp)/(tp + fp) if tp + fp > 0 else 0.0
     recall = float(tp)/(tp + fn) if tp + fn > 0 else 0.0
@@ -97,27 +122,32 @@ def evaluate(rec_divisions, gt_divisions):
     else:
         fscore = 0
 
-    return (precision, recall, fscore, fp, fn, n)
+    return (precision, recall, fscore, fp, fn, tp, tn, fps, fns, tps, tns)
 
 if __name__ == "__main__":
 
     rec_file = sys.argv[1]
-    gt_file = sys.argv[2]
-    frame = int(sys.argv[3])
+    gt_div_file = sys.argv[2]
+    gt_nondiv_file = sys.argv[3]
+    frame = int(sys.argv[4])
+    if len(sys.argv) > 5:
+        outfile = sys.argv[5]
+    else:
+        outfile = rec_file
 
     print("Evaluating frame %d"%frame)
 
     with open(rec_file, 'r') as f:
         rec = json.load(f)
-    rec_divisions = dict(rec['divisions'])
+    rec_divisions = { int(l): div for (l, div) in rec['divisions'].items() }
 
     print("Read %d rec divisions"%len(rec_divisions))
 
     voxel_size = (5, 1, 1)
     gt_divisions = {}
+    gt_nondivisions = {}
     gt_label = 1
-    for line in open(gt_file, 'r'):
-
+    for line in open(gt_div_file, 'r'):
         tokens = line.split()
         if int(round(float(tokens[0]))) == frame:
             center = tuple(float(x)*r for x, r in zip(tokens[1:], voxel_size))
@@ -125,10 +155,22 @@ if __name__ == "__main__":
                 'center': center
             }
             gt_label += 1
+    for line in open(gt_nondiv_file, 'r'):
+        tokens = line.split()
+        if int(round(float(tokens[0]))) == frame:
+            center = tuple(float(x)*r for x, r in zip(tokens[1:], voxel_size))
+            gt_nondivisions[gt_label] = {
+                'center': center
+            }
+            gt_label += 1
 
     print("Read %d GT divisions"%len(gt_divisions))
+    print("Read %d GT non-divisions"%len(gt_nondivisions))
 
-    precision, recall, fscore, fp, fn, n = evaluate(rec_divisions, gt_divisions)
+    precision, recall, fscore, fp, fn, tp, tn, fps, fns, tps, tns = evaluate(
+        rec_divisions,
+        gt_divisions,
+        gt_nondivisions)
 
     rec.update({
         'scores': {
@@ -137,11 +179,20 @@ if __name__ == "__main__":
             'f-score': fscore,
             'fp': fp,
             'fn': fn,
-            'n': n
-        }
+            'tp': tp,
+            'tn': tn,
+            'fps': fps,
+            'fns': fns,
+            'tps': tps,
+            'tns': tns,
+            'num_divs': len(gt_divisions),
+            'num_nondivs': len(gt_nondivisions)
+        },
+        'evaluation_method': 'selected_points',
+        'matching_threshold': matching_threshold
     })
 
-    with open(rec_file, 'w') as f:
+    with open(outfile, 'w') as f:
         json.dump(rec, f, indent=2)
 
     print("precision: %f"%precision)
@@ -149,4 +200,3 @@ if __name__ == "__main__":
     print("f-score  : %f"%fscore)
     print("FPs      : %d"%fp)
     print("FNs      : %d"%fn)
-    print("n        : %d"%n)

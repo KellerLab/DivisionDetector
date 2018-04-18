@@ -97,17 +97,23 @@ def find_divisions(
 
     with h5py.File(prediction_filename, 'r+') as f:
 
-        if 'volumes/blobs' in f:
-            del f['volumes/blobs']
+        try:
 
-        ds = f.create_dataset(
-            'volumes/blobs',
-            data=labels[np.newaxis,:],
-            dtype=np.uint64,
-            compression='gzip')
+            if 'volumes/blobs' in f:
+                del f['volumes/blobs']
 
-        ds.attrs['offset'] = offset
-        ds.attrs['resolution'] = resolution
+            ds = f.create_dataset(
+                'volumes/blobs',
+                data=labels[np.newaxis,:],
+                dtype=np.uint64,
+                compression='gzip')
+
+            ds.attrs['offset'] = offset
+            ds.attrs['resolution'] = resolution
+
+        except:
+
+            print("Failed to store blobs...")
 
     print("Storing results...")
     for threshold, outfile_basename in zip(thresholds, output_basenames):

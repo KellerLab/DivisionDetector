@@ -256,19 +256,27 @@ class Evaluate(ConfigTask):
     def requires(self):
         return FindDivisions(self.parameters)
 
+    def outfile(self):
+        return self.output_basename(self.threshold) + '_scores.json'
+
     def output(self):
 
         return JsonTarget(
-            self.output_basename(self.threshold) + '.json',
+            self.outfile(),
             'scores')
 
     def run(self):
 
-        gt_file = os.path.join(
+        gt_div_file = os.path.join(
             '../01_data/',
             self.parameters['sample'],
             'point_annotations',
             'all_divisions.txt')
+        gt_nondiv_file = os.path.join(
+            '../01_data/',
+            self.parameters['sample'],
+            'point_annotations',
+            'all_non-divisions.txt')
 
         log_out = self.output_basename(self.threshold) + '.out'
         log_err = self.output_basename(self.threshold) + '.err'
@@ -282,7 +290,11 @@ class Evaluate(ConfigTask):
             # '-m', '10000',
             'python',
             '-u', 'evaluate.py',
-            res_file, gt_file, str(self.parameters['frame'])
+            res_file,
+            gt_div_file,
+            gt_nondiv_file,
+            str(self.parameters['frame']),
+            self.outfile()
         ], log_out, log_err)
 
 class EvaluateCombinations(luigi.task.WrapperTask):

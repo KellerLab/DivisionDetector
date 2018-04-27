@@ -1,48 +1,23 @@
 from __future__ import print_function
-from scipy.ndimage.filters import median_filter
-from scipy.ndimage import measurements, label
 import h5py
 import numpy as np
 import json
 import sys
 import os
+from blob_centers import find_blob_centers
+from max_points import find_max_points
 
 # the minimal size of a blob
 blob_size_threshold = 10
-
-def find_peaks(predictions, blob_prediction_threshold):
-
-    # smooth out "U-Net noise"
-    # print("Median-filtering prediction...")
-    # predictions = median_filter(predictions, size=3)
-
-    print("Finding blobs...")
-    blobs = predictions > blob_prediction_threshold
-    labels, num_blobs = label(blobs)
-    print("Found %d blobs"%num_blobs)
-
-    print("Finding peaks, sizes, and maximal values...")
-    label_ids = np.arange(1, num_blobs + 1)
-    centers = measurements.center_of_mass(blobs, labels, index=label_ids)
-    sizes = measurements.sum(blobs, labels, index=label_ids)
-    maxima = measurements.maximum(predictions, labels, index=label_ids)
-
-    peaks = {
-        label: (center, max_value)
-        for label, center, size, max_value in zip(label_ids, centers, sizes, maxima)
-        if size >= blob_size_threshold
-    }
-
-    return (peaks, labels)
 
 def find_divisions(
         setup,
         iteration,
         sample,
         frame,
-        blob_prediction_threshold,
-        thresholds,
-        output_basenames,
+        output_filename,
+        method='blob_centers',
+        method_args=None,
         *args,
         **kwargs):
     '''Find all divisions in the predictions of a frame.
@@ -65,19 +40,24 @@ def find_divisions(
 
                 The frame in the video to find divisions for.
 
-        blob_prediction_threshold (float):
+        output_filename (string):
 
-                The prediction threshold to find blobs.
+                Name of the JSON file to store the results in.
 
-        thresholds (list of float):
+        method (string):
 
-                Thresholds in the range [0, 1] to apply.
+                'blob_centers': Find blobs by thresholding, take center as
+                detection.
 
-        output_basenames (list of strings):
+                'max_points': Apply non-max suppression to find local maxima.
 
-                Basenames of the files to store the results in, one for each
-                threshold. The extension '.json' will be added to each basename.
+        method_args (dict):
+
+                Arguments passed to either ``method``.
     '''
+
+    if not method_args:
+        method_args = {}
 
     prediction_filename = os.path.join(
         'processed',
@@ -92,8 +72,14 @@ def find_divisions(
         offset = ds.attrs['offset']
         resolution = ds.attrs['resolution']
 
-    print("Finding peaks...")
-    peaks, labels = find_peaks(predictions, blob_prediction_threshold)
+    print("Finding detections...")
+
+    if method == 'blob_centers':
+        detections, blobs = find_blob_centers(predictions, **method_args)
+    elif method == 'max_points':
+        detections, blobs = find_max_points(predictions, **method_args)
+    else:
+        raise RuntimeError("Unkown method %s"%method)
 
     with h5py.File(prediction_filename, 'r+') as f:
 
@@ -104,7 +90,7 @@ def find_divisions(
 
             ds = f.create_dataset(
                 'volumes/blobs',
-                data=labels[np.newaxis,:],
+                data=blobs[np.newaxis,:],
                 dtype=np.uint64,
                 compression='gzip')
 
@@ -115,26 +101,24 @@ def find_divisions(
 
             print("Failed to store blobs...")
 
-    print("Storing results...")
-    for threshold, outfile_basename in zip(thresholds, output_basenames):
-
-        threshold_peaks = {
-            label: {
-                'center': tuple(
-                    c*r+o
-                    for c, o, r
-                    in zip(center, offset[1:], resolution[1:])),
-                'max_value': float(max_value)
-            }
-            for label, (center, max_value) in peaks.items()
-            if max_value >= threshold
+    # correct for offset and resolution
+    detections = {
+        label: {
+            'center': tuple(
+                c*r+o
+                for c, o, r
+                in zip(center, offset[1:], resolution[1:])),
+            'score': float(score)
         }
+        for label, (center, score) in detections.items()
+    }
 
-        result = {
-            'divisions': threshold_peaks
-        }
-        with open(outfile_basename + '.json', 'w') as f:
-            json.dump(result, f, indent=2)
+    result = {
+        'divisions': detections
+    }
+
+    with open(output_filename, 'w') as f:
+        json.dump(result, f, indent=2)
 
 if __name__ == "__main__":
 

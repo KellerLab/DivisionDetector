@@ -49,3 +49,11 @@ All together
   (via collect_all_annotations.txt)
   ⇒ all_divisions.txt
   ⇒ all_non-divisions.txt
+
+Testing Benchmarks
+==================
+
+• sampled 1000 random points (random_points_t=*.json)
+• removed divisions in first 250 points (random_points_t=360_non-divisions.json)
+• combined with full_divisions_t=360.txt
+  ⇒ test_benchmark_t=360.txt

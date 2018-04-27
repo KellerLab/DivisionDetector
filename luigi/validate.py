@@ -1,6 +1,7 @@
 import luigi
 
 import os
+import numpy as np
 from tasks import *
 
 if __name__ == '__main__':
@@ -8,28 +9,32 @@ if __name__ == '__main__':
     combinations = {
         'experiment': 'DIV',
         'setups': [
-            'setup06',
-            'setup07',
-            'setup08',
-            'setup09',
-            'setup10',
-            'setup11',
-            'setup12',
-            'setup13',
-            'setup14',
-            'setup15',
-            'setup16',
-            'setup17',
+            # 'setup06',
+            # 'setup07',
+            # 'setup08',
+            # 'setup09',
+            # 'setup10',
+            # 'setup11',
+            # 'setup12',
+            # 'setup13',
+            # 'setup14',
+            # 'setup15',
+            # 'setup16',
+            # 'setup17',
+            'setup18',
+            'setup19',
         ],
-        'iterations': [4000, 10000, 30000, 60000, 100000],
+        'iterations': [4000, 10000, 30000, 60000, 100000, 150000, 200000, 250000, 300000],
         'sample': '140521',
         'frame': 360,
-        'thresholds': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
+        'blob_prediction_thresholds': [0.01, 0.25],
+        'thresholds': list(np.arange(0.0, 1.0, 0.01)),
     }
 
     range_keys = [
         'setups',
         'iterations',
+        'blob_prediction_thresholds',
     ]
 
     set_base_dir(os.path.abspath('..'))

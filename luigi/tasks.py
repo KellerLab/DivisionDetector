@@ -97,9 +97,9 @@ class TrainTask(luigi.Task):
             'train_net_checkpoint_%d.meta'%self.iteration)
 
     def requires(self):
-        if self.iteration == 2000:
+        if self.iteration == 10000:
             return []
-        return TrainTask(self.experiment, self.setup, self.iteration - 2000)
+        return TrainTask(self.experiment, self.setup, self.iteration - 10000)
 
     def output(self):
         return FileTarget(self.output_filename())
@@ -267,16 +267,11 @@ class Evaluate(ConfigTask):
 
     def run(self):
 
-        gt_div_file = os.path.join(
+        benchmark_file = os.path.join(
             '../01_data/',
             self.parameters['sample'],
             'point_annotations',
-            'all_divisions.txt')
-        gt_nondiv_file = os.path.join(
-            '../01_data/',
-            self.parameters['sample'],
-            'point_annotations',
-            'all_non-divisions.txt')
+            'test_benchmark_t=%d.json'%self.parameters['frame'])
 
         log_out = self.output_basename(self.threshold) + '.out'
         log_err = self.output_basename(self.threshold) + '.err'
@@ -291,9 +286,7 @@ class Evaluate(ConfigTask):
             'python',
             '-u', 'evaluate.py',
             res_file,
-            gt_div_file,
-            gt_nondiv_file,
-            str(self.parameters['frame']),
+            benchmark_file,
             self.outfile()
         ], log_out, log_err)
 

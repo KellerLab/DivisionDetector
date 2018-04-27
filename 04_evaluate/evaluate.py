@@ -65,6 +65,9 @@ def evaluate(rec_divisions, gt_divisions, gt_nondivisions):
     gt_annotations = dict(gt_divisions)
     gt_annotations.update(gt_nondivisions)
 
+    assert len(gt_annotations) == len(gt_divisions) + len(gt_nondivisions), (
+        "divisions and non-divisions should not share label IDs")
+
     # create matching costs to all annotations
     costs, rec_labels, gt_labels = create_matching_costs(
         rec_divisions,
@@ -127,15 +130,11 @@ def evaluate(rec_divisions, gt_divisions, gt_nondivisions):
 if __name__ == "__main__":
 
     rec_file = sys.argv[1]
-    gt_div_file = sys.argv[2]
-    gt_nondiv_file = sys.argv[3]
-    frame = int(sys.argv[4])
-    if len(sys.argv) > 5:
-        outfile = sys.argv[5]
+    benchmark_file = sys.argv[2]
+    if len(sys.argv) > 3:
+        outfile = sys.argv[3]
     else:
         outfile = rec_file
-
-    print("Evaluating frame %d"%frame)
 
     with open(rec_file, 'r') as f:
         rec = json.load(f)
@@ -143,26 +142,9 @@ if __name__ == "__main__":
 
     print("Read %d rec divisions"%len(rec_divisions))
 
-    voxel_size = (5, 1, 1)
-    gt_divisions = {}
-    gt_nondivisions = {}
-    gt_label = 1
-    for line in open(gt_div_file, 'r'):
-        tokens = line.split()
-        if int(round(float(tokens[0]))) == frame:
-            center = tuple(float(x)*r for x, r in zip(tokens[1:], voxel_size))
-            gt_divisions[gt_label] = {
-                'center': center
-            }
-            gt_label += 1
-    for line in open(gt_nondiv_file, 'r'):
-        tokens = line.split()
-        if int(round(float(tokens[0]))) == frame:
-            center = tuple(float(x)*r for x, r in zip(tokens[1:], voxel_size))
-            gt_nondivisions[gt_label] = {
-                'center': center
-            }
-            gt_label += 1
+    benchmark = json.load(open(benchmark_file, 'r'))
+    gt_divisions = benchmark['divisions']
+    gt_nondivisions = benchmark['non_divisions']
 
     print("Read %d GT divisions"%len(gt_divisions))
     print("Read %d GT non-divisions"%len(gt_nondivisions))

@@ -107,10 +107,10 @@ def find_divisions(
             'center': tuple(
                 c*r+o
                 for c, o, r
-                in zip(center, offset[1:], resolution[1:])),
-            'score': float(score)
+                in zip(data['center'], offset[1:], resolution[1:])),
+            'score': float(data['score'])
         }
-        for label, (center, score) in detections.items()
+        for label, data in detections.items()
     }
 
     result = {

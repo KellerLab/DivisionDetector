@@ -81,25 +81,25 @@ def find_divisions(
     else:
         raise RuntimeError("Unkown method %s"%method)
 
-    with h5py.File(prediction_filename, 'r+') as f:
+    # with h5py.File(prediction_filename, 'r+') as f:
 
-        try:
+        # try:
 
-            if 'volumes/blobs' in f:
-                del f['volumes/blobs']
+            # if 'volumes/blobs' in f:
+                # del f['volumes/blobs']
 
-            ds = f.create_dataset(
-                'volumes/blobs',
-                data=blobs[np.newaxis,:],
-                dtype=np.uint64,
-                compression='gzip')
+            # ds = f.create_dataset(
+                # 'volumes/blobs',
+                # data=blobs[np.newaxis,:],
+                # dtype=np.uint64,
+                # compression='gzip')
 
-            ds.attrs['offset'] = offset
-            ds.attrs['resolution'] = resolution
+            # ds.attrs['offset'] = offset
+            # ds.attrs['resolution'] = resolution
 
-        except:
+        # except:
 
-            print("Failed to store blobs...")
+            # print("Failed to store blobs...")
 
     # correct for offset and resolution
     detections = {

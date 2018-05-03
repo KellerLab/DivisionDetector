@@ -184,17 +184,15 @@ class ConfigTask(luigi.Task):
         return self.parameters['iteration']
 
     def tag(self):
-        tag = self.parameters['sample']
-        tag += '_' + str(self.parameters['frame'])
-        tag += '_bpt=%.2f'%self.parameters['blob_prediction_threshold']
-        # add more hyperparameters here, if needed
+        dict_str = json.dumps(dict(self.parameters), sort_keys=True)
+        tag = str(hash(dict_str))
         return tag
 
     def output_basename(self, threshold=None):
 
         threshold_string = ''
         if threshold is not None:
-            threshold_string = '_t=' + ('%f'%threshold).rstrip('0').rstrip('.')
+            threshold_string = '_t=' + ('%.5f'%threshold).rstrip('0').rstrip('.')
         basename = self.tag() + threshold_string
 
         return os.path.join(
@@ -218,12 +216,9 @@ class FindDivisions(ConfigTask):
 
     def output(self):
 
-        targets = [
-            JsonTarget(
-                self.output_basename(t) + '.json',
-                'divisions')
-            for t in self.parameters['thresholds']
-        ]
+        return JsonTarget(
+            self.output_basename() + '.json',
+            'divisions')
 
         return targets
 
@@ -233,9 +228,10 @@ class FindDivisions(ConfigTask):
         log_err = self.output_basename() + '.err'
 
         args = dict(self.parameters)
-        args['output_basenames'] = [
-            self.output_basename(t)
-            for t in self.parameters['thresholds']]
+        args['output_filename'] = self.output_basename() + '.json'
+        args['method'] = self.parameters['find_divisions_method']
+        args['method_args'] = self.parameters['find_divisions_method_args']
+
         with open(self.output_basename() + '.config', 'w') as f:
             json.dump(args, f)
 
@@ -275,7 +271,7 @@ class Evaluate(ConfigTask):
 
         log_out = self.output_basename(self.threshold) + '.out'
         log_err = self.output_basename(self.threshold) + '.err'
-        res_file = self.output_basename(self.threshold) + '.json'
+        res_file = self.output_basename() + '.json'
 
         os.chdir(os.path.join(base_dir, '04_evaluate'))
         call([
@@ -287,6 +283,7 @@ class Evaluate(ConfigTask):
             '-u', 'evaluate.py',
             res_file,
             benchmark_file,
+            str(self.threshold),
             self.outfile()
         ], log_out, log_err)
 

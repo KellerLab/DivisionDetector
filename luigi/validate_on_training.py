@@ -1,7 +1,6 @@
 import luigi
 
 import os
-import numpy as np
 from tasks import *
 
 if __name__ == '__main__':
@@ -21,25 +20,21 @@ if __name__ == '__main__':
             # 'setup15',
             # 'setup16',
             # 'setup17',
-            'setup18',
+            # 'setup18',
             'setup19',
         ],
-        'iterations': [4000, 10000, 30000, 60000, 100000, 150000, 200000, 250000, 300000],
+        # 'iterations': [4000, 10000, 30000, 60000, 100000],
+        'iterations': [30000],
         'sample': '140521',
-        'frame': 360,
-        'downsample': [2, 4, 4],
-        'find_divisions_method': 'max_points',
-        'find_divisions_method_args': {
-            'radius': [20, 20, 20],
-            'sigma': [1.0, 1.0, 1.0],
-            'min_score_threshold': 1e-4
-        },
-        'thresholds': list(np.arange(0.0, 1.0, 0.005)),
+        'frame': 250,
+        'blob_prediction_thresholds': [0.01, 0.25],
+        'thresholds': [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9],
     }
 
     range_keys = [
         'setups',
         'iterations',
+        'blob_prediction_thresholds',
     ]
 
     set_base_dir(os.path.abspath('..'))

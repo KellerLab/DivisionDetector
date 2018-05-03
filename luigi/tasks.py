@@ -317,7 +317,10 @@ class EvaluateCombinations(luigi.task.WrapperTask):
             parameters = { k: v for k, v in zip(range_keys, concrete_values) }
             parameters.update(other_values)
 
-            tasks += [ Evaluate(parameters, t) for t in parameters['thresholds'] ]
+            thresholds = parameters['thresholds']
+            del parameters['thresholds']
+
+            tasks += [ Evaluate(parameters, t) for t in thresholds ]
 
         print("EvaluateCombinations: require %d configurations"%len(tasks))
 

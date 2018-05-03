@@ -6,4 +6,6 @@ Evaluate a frame:
 
     benchmark_json: JSON file containing 'divisions' and 'non_divisions' dicts like result_json.
 
-    outfile Name of JSON file to store the results. If not given, use <result_json>.
+    threshold: Consider only found divisions with a score larger than this threshold.
+
+    outfile Name of JSON file to store the results. If not given, use <result_json>_<threshold>.json

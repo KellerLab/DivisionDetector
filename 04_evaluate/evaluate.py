@@ -131,14 +131,19 @@ if __name__ == "__main__":
 
     rec_file = sys.argv[1]
     benchmark_file = sys.argv[2]
-    if len(sys.argv) > 3:
-        outfile = sys.argv[3]
+    threshold = float(sys.argv[3])
+    if len(sys.argv) > 4:
+        outfile = sys.argv[4]
     else:
-        outfile = rec_file
+        outfile = rec_file[:-4] + '_t=%.4f.json'%threshold
 
     with open(rec_file, 'r') as f:
         rec = json.load(f)
-    rec_divisions = { int(l): div for (l, div) in rec['divisions'].items() }
+    rec_divisions = {
+        int(l): div
+        for (l, div) in rec['divisions'].items()
+        if div['score'] >= threshold
+    }
 
     print("Read %d rec divisions"%len(rec_divisions))
 
@@ -170,9 +175,14 @@ if __name__ == "__main__":
             'num_divs': len(gt_divisions),
             'num_nondivs': len(gt_nondivisions)
         },
-        'evaluation_method': 'selected_points',
-        'matching_threshold': matching_threshold
+        'evaluation': {
+            'threshold': threshold,
+            'evaluation_method': 'selected_points',
+            'matching_threshold': matching_threshold
+        }
     })
+    # don't store divisions, files get too big otherwise
+    del rec['divisions']
 
     with open(outfile, 'w') as f:
         json.dump(rec, f, indent=2)

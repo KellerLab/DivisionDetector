@@ -122,17 +122,17 @@ def find_divisions(
 
             # print("Failed to store blobs...")
 
-    print("Storing predictions...")
-    start = time.time()
-    with h5py.File(output_filename[:-4] + 'hdf', 'w') as f:
+    # print("Storing predictions...")
+    # start = time.time()
+    # with h5py.File(output_filename[:-4] + 'hdf', 'w') as f:
 
-        ds = f.create_dataset(
-            'volumes/predictions',
-            data=predictions[np.newaxis,:],
-            compression='gzip')
-        ds.attrs['offset'] = (1,) + offset
-        ds.attrs['resolution'] = (1,) + resolution
-    print("%.3fs"%(time.time()-start))
+        # ds = f.create_dataset(
+            # 'volumes/predictions',
+            # data=predictions[np.newaxis,:],
+            # compression='gzip')
+        # ds.attrs['offset'] = (1,) + offset
+        # ds.attrs['resolution'] = (1,) + resolution
+    # print("%.3fs"%(time.time()-start))
 
     print("Storing detections...")
     start = time.time()

@@ -149,7 +149,16 @@ def find_divisions(
     }
 
     result = {
-        'divisions': detections
+        'divisions': detections,
+        'configuration': {
+            'setup': setup,
+            'iteration': iteration,
+            'sample': sample,
+            'frame': frame,
+            'find_divisions_method': method,
+            'find_divisions_method_args': method_args,
+            'downsample': downsample,
+        }
     }
 
     with open(output_filename, 'w') as f:

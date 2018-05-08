@@ -215,12 +215,16 @@ class FindDivisions(ConfigTask):
 
     def requires(self):
 
-        return ProcessTask(
-            self.parameters['experiment'],
-            self.get_setup(),
-            self.get_iteration(),
-            self.parameters['sample'],
-            self.parameters['frame'])
+        context = self.parameters.get('context', 0)
+
+        return [
+            ProcessTask(
+                self.parameters['experiment'],
+                self.get_setup(),
+                self.get_iteration(),
+                self.parameters['sample'],
+                self.parameters['frame'] + c)
+            for c in range(-context, context + 1)]
 
     def output(self):
 

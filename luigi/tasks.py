@@ -184,8 +184,16 @@ class ConfigTask(luigi.Task):
         return self.parameters['iteration']
 
     def tag(self):
-        dict_str = json.dumps(dict(self.parameters), sort_keys=True)
+
+        parameters = dict(self.parameters)
+
+        # sanatize dicts
+        if 'find_divisions_method_args' in parameters:
+            parameters['find_divisions_method_args'] = dict(parameters['find_divisions_method_args'])
+
+        dict_str = json.dumps(dict(parameters), sort_keys=True)
         tag = str(hash(dict_str))
+
         return tag
 
     def output_basename(self, threshold=None):
@@ -230,7 +238,9 @@ class FindDivisions(ConfigTask):
         args = dict(self.parameters)
         args['output_filename'] = self.output_basename() + '.json'
         args['method'] = self.parameters['find_divisions_method']
-        args['method_args'] = self.parameters['find_divisions_method_args']
+        args['method_args'] = dict(self.parameters['find_divisions_method_args'])
+        del args['find_divisions_method']
+        del args['find_divisions_method_args']
 
         with open(self.output_basename() + '.config', 'w') as f:
             json.dump(args, f)

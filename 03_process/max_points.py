@@ -37,13 +37,17 @@ def find_max_points(
     radius = tuple(int(math.ceil(float(ra)/re)) for ra, re in zip(radius, resolution))
     print("voxel-radius: %s"%(radius,))
     max_filtered = maximum_filter(predictions, footprint=sphere(radius))
-    maxima = max_filtered == predictions
+
+    # for the following, we only process the center frame
+    center = predictions.shape[0]/2
+
+    maxima = max_filtered[center] == predictions[center]
     print("%.3fs"%(time.time()-start))
 
     print("Applying NMS...")
     start = time.time()
-    predictions_filtered = np.zeros_like(predictions)
-    predictions_filtered[maxima] = predictions[maxima]
+    predictions_filtered = np.zeros_like(predictions[center])
+    predictions_filtered[maxima] = predictions[center][maxima]
     print("%.3fs"%(time.time()-start))
 
     print("Finding blobs...")

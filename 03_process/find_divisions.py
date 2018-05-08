@@ -17,6 +17,7 @@ def find_divisions(
         iteration,
         sample,
         frame,
+        context,
         output_filename,
         method='blob_centers',
         method_args=None,
@@ -43,6 +44,11 @@ def find_divisions(
 
                 The frame in the video to find divisions for.
 
+        context (int):
+
+                How many earlier/later frames to consider for the non-maximal
+                suppression.
+
         output_filename (string):
 
                 Name of the JSON file to store the results in.
@@ -67,19 +73,31 @@ def find_divisions(
     if not method_args:
         method_args = {}
 
-    prediction_filename = os.path.join(
-        'processed',
-        setup,
-        str(iteration),
-        sample + '_' + str(frame) + '.hdf')
+    if context > 0 and method == 'blob_centers':
+        raise RuntimeError(
+            "z-context is not yet implemented for method 'blob_centers'")
+
+    frames = list(range(frame - context, frame + context + 1))
+
+    prediction_filenames = [
+        os.path.join(
+            'processed',
+            setup,
+            str(iteration),
+            sample + '_' + str(f) + '.hdf')
+        for f in frames]
 
     print("Reading predictions...")
     start = time.time()
-    with h5py.File(prediction_filename, 'r') as f:
-        ds = f['volumes/divisions']
-        predictions = np.array(ds[0])
-        offset = tuple(ds.attrs['offset'][1:])
-        resolution = tuple(ds.attrs['resolution'][1:])
+    predictions = []
+    for prediction_filename in prediction_filenames:
+        print("\t%s"%prediction_filename)
+        with h5py.File(prediction_filename, 'r') as f:
+            ds = f['volumes/divisions']
+            predictions.append(np.array(ds[0]))
+            offset = tuple(ds.attrs['offset'][1:])
+            resolution = tuple(ds.attrs['resolution'])
+    predictions = np.array(predictions)
     print("%.3fs"%(time.time()-start))
 
     print("resolution of predictions: %s"%(resolution,))
@@ -88,51 +106,21 @@ def find_divisions(
         downsample = tuple(downsample)
         print("Downsampling predictions...")
         start = time.time()
-        predictions = block_reduce(predictions, downsample, np.max)
-        resolution = tuple(r*d for r, d in zip(resolution, downsample))
+        predictions = np.array([
+            block_reduce(predictions[f], downsample, np.max)
+            for f in range(predictions.shape[0])])
+        resolution = (resolution[0],) + tuple(r*d for r, d in zip(resolution[1:], downsample))
         print("%.3fs"%(time.time()-start))
         print("new resolution of predictions: %s"%(resolution,))
 
     print("Finding detections...")
 
     if method == 'blob_centers':
-        detections, blobs = find_blob_centers(predictions, resolution, **method_args)
+        detections, blobs = find_blob_centers(predictions[0], resolution[1:], **method_args)
     elif method == 'max_points':
         detections, blobs = find_max_points(predictions, resolution, **method_args)
     else:
         raise RuntimeError("Unkown method %s"%method)
-
-    # with h5py.File(prediction_filename, 'r+') as f:
-
-        # try:
-
-            # if 'volumes/blobs' in f:
-                # del f['volumes/blobs']
-
-            # ds = f.create_dataset(
-                # 'volumes/blobs',
-                # data=blobs[np.newaxis,:],
-                # dtype=np.uint64,
-                # compression='gzip')
-
-            # ds.attrs['offset'] = (1,) + offset
-            # ds.attrs['resolution'] = (1,) + resolution
-
-        # except:
-
-            # print("Failed to store blobs...")
-
-    # print("Storing predictions...")
-    # start = time.time()
-    # with h5py.File(output_filename[:-4] + 'hdf', 'w') as f:
-
-        # ds = f.create_dataset(
-            # 'volumes/predictions',
-            # data=predictions[np.newaxis,:],
-            # compression='gzip')
-        # ds.attrs['offset'] = (1,) + offset
-        # ds.attrs['resolution'] = (1,) + resolution
-    # print("%.3fs"%(time.time()-start))
 
     print("Storing detections...")
     start = time.time()
@@ -142,7 +130,7 @@ def find_divisions(
             'center': tuple(
                 c*r+o
                 for c, o, r
-                in zip(data['center'], offset, resolution)),
+                in zip(data['center'], offset, resolution[1:])),
             'score': float(data['score'])
         }
         for label, data in detections.items()
@@ -155,6 +143,7 @@ def find_divisions(
             'iteration': iteration,
             'sample': sample,
             'frame': frame,
+            'context': context,
             'find_divisions_method': method,
             'find_divisions_method_args': method_args,
             'downsample': downsample,

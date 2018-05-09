@@ -14,14 +14,19 @@ if __name__ == '__main__':
         'iterations': [0],
         'sample': '140521',
         'frame': 360,
-        'blob_prediction_thresholds': [0.01, 0.25],
-        'thresholds': list(np.arange(0.0, 1.0, 0.01)),
+        'downsample': [2, 4, 4],
+        'find_divisions_method': 'max_points',
+        'find_divisions_method_args': {
+            'radius': [20, 20, 20],
+            'sigma': [1.0, 1.0, 1.0],
+            'min_score_threshold': 1e-4
+        },
+        'thresholds': list(np.arange(0.0, 1.0, 0.005)),
     }
 
     range_keys = [
         'setups',
         'iterations',
-        'blob_prediction_thresholds',
     ]
 
     set_base_dir(os.path.abspath('..'))

@@ -113,7 +113,7 @@ class TrainTask(luigi.Task):
             'run_lsf',
             '-c', '10',
             '-g', '1',
-            '-d', 'funkey/division_detection:v0.2',
+            '-d', 'funkey/division_detection:v0.3',
             'python -u train.py ' + str(self.iteration)
         ], log_out, log_err)
 
@@ -162,7 +162,7 @@ class ProcessTask(luigi.Task):
             '-c', '2',
             '-g', '1',
             '-m', '10000',
-            '-d', 'funkey/division_detection:v0.2',
+            '-d', 'funkey/division_detection:v0.3',
             'python -u predict.py ' + \
                     self.setup + ' ' + \
                     str(self.iteration) + ' ' + \

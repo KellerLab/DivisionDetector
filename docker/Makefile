@@ -1,9 +1,9 @@
-TAG="funkey/division_detection:v0.2"
+TAG="funkey/division_detection:v0.3"
 
 .PHONY: default push
 default:
 	-docker rmi -f $(TAG)
-	docker pull funkey/gunpowder:v0.3
+	docker pull funkey/gunpowder:v0.3.1
 	docker build -t $(TAG) .
 
 push: default

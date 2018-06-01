@@ -95,7 +95,12 @@ def match(rec, gt, prefer_high_scores=False):
 
     return filtered_matches, matched_rec_annotations, matched_gt_annotations
 
-def evaluate_threshold(threshold, rec_divisions, gt_divisions, gt_nondivisions):
+def evaluate_threshold(
+        threshold,
+        rec_divisions,
+        gt_divisions,
+        gt_nondivisions,
+        method):
 
     rec_divisions = {
         l: div
@@ -103,19 +108,33 @@ def evaluate_threshold(threshold, rec_divisions, gt_divisions, gt_nondivisions):
         if div['score'] >= threshold
     }
 
-    # create a dictionary of all annotations
-    gt_annotations = dict(gt_divisions)
-    gt_annotations.update(gt_nondivisions)
+    if method == 'selected_points':
 
-    assert len(gt_annotations) == len(gt_divisions) + len(gt_nondivisions), (
-        "divisions and non-divisions should not share label IDs")
+        # create a dictionary of all annotations
+        gt_annotations = dict(gt_divisions)
+        gt_annotations.update(gt_nondivisions)
 
-    filtered_matches, matched_rec_annotations, matched_gt_annotations = match(
-        rec_divisions,
-        gt_annotations)
+        assert len(gt_annotations) == len(gt_divisions) + len(gt_nondivisions), (
+            "divisions and non-divisions should not share label IDs")
 
-    # matched GT non-division = FP
-    fps = [ l for l in gt_nondivisions.keys() if l in matched_gt_annotations ]
+        # match reconstruction to both divisions and non-divisions
+        filtered_matches, matched_rec_annotations, matched_gt_annotations = match(
+            rec_divisions,
+            gt_annotations)
+
+    elif method == 'selected_divisions':
+
+        # match reconstruction only to divisions
+        filtered_matches, matched_rec_annotations, matched_gt_annotations = match(
+            rec_divisions,
+            gt_divisions)
+
+    if method == 'selected_points':
+        # matched GT non-division = FP
+        fps = [ l for l in gt_nondivisions.keys() if l in matched_gt_annotations ]
+    elif method == 'selected_divisions':
+        # unmatched REC divisions = FP
+        fps = [ l for l in rec_divisions.keys() if l not in matched_rec_annotations ]
     fp = len(fps)
 
     # unmatched GT division = FN
@@ -126,17 +145,24 @@ def evaluate_threshold(threshold, rec_divisions, gt_divisions, gt_nondivisions):
     tps = [ l for l in gt_divisions.keys() if l in matched_gt_annotations ]
     tp = len(tps)
 
-    # unmatched GT non-divisions = TN
-    tns = [ l for l in gt_nondivisions.keys() if l not in matched_gt_annotations ]
-    tn = len(tns)
+    if method == 'selected_points':
+        # unmatched GT non-divisions = TN
+        tns = [ l for l in gt_nondivisions.keys() if l not in matched_gt_annotations ]
+        tn = len(tns)
+    elif method == 'selected_divisions':
+        # TNs can not be counted (this is where this method is only an
+        # approximation)
+        tns = []
+        tn = np.nan
 
     # all positives
     n = len(gt_divisions)
     assert tp + fn == n
 
-    # all negatives
-    m = len(gt_nondivisions)
-    assert tn + fp == m
+    if method == 'selected_points':
+        # all negatives
+        m = len(gt_nondivisions)
+        assert tn + fp == m
 
     precision = float(tp)/(tp + fp) if tp + fp > 0 else 0.0
     recall = float(tp)/(tp + fn) if tp + fn > 0 else 0.0
@@ -192,7 +218,8 @@ def evaluate(rec_divisions, gt_divisions, gt_nondivisions, method):
             threshold,
             rec_divisions,
             gt_divisions,
-            gt_nondivisions)
+            gt_nondivisions,
+            method)
         result_row['threshold'] = threshold
 
         result_rows.append(result_row)

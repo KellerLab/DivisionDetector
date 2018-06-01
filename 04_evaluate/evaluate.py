@@ -14,7 +14,7 @@ import numpy as np
 # single cell
 matching_threshold = 15
 
-def create_matching_costs(rec_divisions, gt_divisions):
+def create_matching_costs(rec_divisions, gt_divisions, prefer_high_scores=False):
 
     num_recs = len(rec_divisions)
     num_gts = len(gt_divisions)
@@ -33,14 +33,16 @@ def create_matching_costs(rec_divisions, gt_divisions):
             rec_divisions[l]['center']
             for l in rec_divisions.keys()
         ], dtype=np.float32)
+    rec_scores = np.array(
+        [
+            rec_divisions[l]['score']
+            for l in rec_divisions.keys()
+        ], dtype=np.float32)
     gt_locations = np.array(
         [
             gt_divisions[l]['center']
             for l in gt_divisions.keys()
         ], dtype=np.float32)
-
-    print(rec_locations)
-    print(gt_locations)
 
     print("Computing matching costs...")
     matching_costs = np.zeros((num_recs, num_gts), dtype=np.float32)
@@ -55,25 +57,23 @@ def create_matching_costs(rec_divisions, gt_divisions):
             if distance > matching_threshold:
                 distance = 100*matching_threshold
 
-            matching_costs[i][j] = distance
+            if prefer_high_scores:
+                matching_costs[i][j] = 1.0 - rec_scores[i]
+            else:
+                matching_costs[i][j] = distance
 
     return matching_costs, rec_labels, gt_labels
 
-def evaluate(rec_divisions, gt_divisions, gt_nondivisions):
+def match(rec, gt, prefer_high_scores=False):
+    '''Match reconstructions to ground-truth. Returns filtered_matches, a list
+    of tuples (label_rec, label_gt, cost) and lists of matched rec labels and
+    matched gt labels.'''
 
-    # create a dictionary of all annotations
-    gt_annotations = dict(gt_divisions)
-    gt_annotations.update(gt_nondivisions)
-
-    assert len(gt_annotations) == len(gt_divisions) + len(gt_nondivisions), (
-        "divisions and non-divisions should not share label IDs")
-
-    # create matching costs to all annotations
     costs, rec_labels, gt_labels = create_matching_costs(
-        rec_divisions,
-        gt_annotations)
+        rec,
+        gt)
 
-    if rec_divisions:
+    if rec:
 
         print("Finding cost-minimal matches...")
         matches = linear_sum_assignment(costs - np.amax(costs) - 1)
@@ -92,7 +92,27 @@ def evaluate(rec_divisions, gt_divisions, gt_nondivisions):
     matched_gt_annotations = [ f[1] for f in filtered_matches ]
 
     print("%d matches found"%len(filtered_matches))
-    print(filtered_matches)
+
+    return filtered_matches, matched_rec_annotations, matched_gt_annotations
+
+def evaluate_threshold(threshold, rec_divisions, gt_divisions, gt_nondivisions):
+
+    rec_divisions = {
+        l: div
+        for l, div in rec_divisions.items()
+        if div['score'] >= threshold
+    }
+
+    # create a dictionary of all annotations
+    gt_annotations = dict(gt_divisions)
+    gt_annotations.update(gt_nondivisions)
+
+    assert len(gt_annotations) == len(gt_divisions) + len(gt_nondivisions), (
+        "divisions and non-divisions should not share label IDs")
+
+    filtered_matches, matched_rec_annotations, matched_gt_annotations = match(
+        rec_divisions,
+        gt_annotations)
 
     # matched GT non-division = FP
     fps = [ l for l in gt_nondivisions.keys() if l in matched_gt_annotations ]
@@ -125,60 +145,116 @@ def evaluate(rec_divisions, gt_divisions, gt_nondivisions):
     else:
         fscore = 0
 
-    return (precision, recall, fscore, fp, fn, tp, tn, fps, fns, tps, tns)
+    return {
+        'precision': precision,
+        'recall': recall,
+        'f-score': fscore,
+        'fp': fp,
+        'fn': fn,
+        'tp': tp,
+        'tn': tn,
+        'fps': fps,
+        'fns': fns,
+        'tps': tps,
+        'tns': tns
+    }
+
+def evaluate(rec_divisions, gt_divisions, gt_nondivisions, method):
+
+    if method == 'selected_divisions':
+
+        # get high-score matches between rec and gt_divisions to determine thresholds
+        _, matched_rec_annotations, _ = match(
+            rec_divisions,
+            gt_divisions,
+            prefer_high_scores=True)
+
+    if method == 'selected_points':
+
+        # also include thresholds for non-divisions
+        gt_annotations = dict(gt_divisions)
+        gt_annotations.update(gt_nondivisions)
+
+        _, matched_rec_annotations, _ = match(
+            rec_divisions,
+            gt_annotations)
+
+    thresholds = np.array(sorted([
+        rec_divisions[l]['score']
+        for l in matched_rec_annotations
+    ]))
+    print("Evaluating thresholds %s"%thresholds)
+
+    result_rows = []
+    for threshold in thresholds:
+
+        result_row = evaluate_threshold(
+            threshold,
+            rec_divisions,
+            gt_divisions,
+            gt_nondivisions)
+        result_row['threshold'] = threshold
+
+        result_rows.append(result_row)
+
+    return result_rows
 
 if __name__ == "__main__":
 
     rec_file = sys.argv[1]
     benchmark_file = sys.argv[2]
-    threshold = float(sys.argv[3])
+    method = sys.argv[3]
+    assert method in ['selected_points', 'selected_divisions']
     if len(sys.argv) > 4:
         outfile = sys.argv[4]
     else:
-        outfile = rec_file[:-4] + '_t=%.4f.json'%threshold
+        outfile = rec_file[:-5] + '_scores.json'
 
     with open(rec_file, 'r') as f:
         rec = json.load(f)
     rec_divisions = {
         int(l): div
         for (l, div) in rec['divisions'].items()
-        if div['score'] >= threshold
     }
 
     print("Read %d rec divisions"%len(rec_divisions))
 
     benchmark = json.load(open(benchmark_file, 'r'))
     gt_divisions = benchmark['divisions']
-    gt_nondivisions = benchmark['non_divisions']
+    gt_nondivisions = benchmark.get('non_divisions', {})
 
     print("Read %d GT divisions"%len(gt_divisions))
     print("Read %d GT non-divisions"%len(gt_nondivisions))
 
-    precision, recall, fscore, fp, fn, tp, tn, fps, fns, tps, tns = evaluate(
+    result_rows = evaluate(
         rec_divisions,
         gt_divisions,
-        gt_nondivisions)
+        gt_nondivisions,
+        method)
 
     rec.update({
         'scores': {
-            'precision': precision,
-            'recall': recall,
-            'f-score': fscore,
-            'fp': fp,
-            'fn': fn,
-            'tp': tp,
-            'tn': tn,
-            'fps': fps,
-            'fns': fns,
-            'tps': tps,
-            'tns': tns,
-            'num_divs': len(gt_divisions),
-            'num_nondivs': len(gt_nondivisions)
+            key: [ row[key] for row in result_rows ]
+            for key in [
+                'threshold',
+                'precision',
+                'recall',
+                'f-score',
+                'fp',
+                'fn',
+                'tp',
+                'tn',
+                'fps',
+                'fns',
+                'tps',
+                'tns',
+            ]
         },
         'evaluation': {
-            'threshold': threshold,
-            'evaluation_method': 'selected_points',
-            'matching_threshold': matching_threshold
+            'evaluation_method': method,
+            'matching_threshold': matching_threshold,
+            'num_divs': len(gt_divisions),
+            'num_nondivs': len(gt_nondivisions)
         }
     })
     # don't store divisions, files get too big otherwise
@@ -186,9 +262,3 @@ if __name__ == "__main__":
 
     with open(outfile, 'w') as f:
         json.dump(rec, f, indent=2)
-
-    print("precision: %f"%precision)
-    print("recall   : %f"%recall)
-    print("f-score  : %f"%fscore)
-    print("FPs      : %d"%fp)
-    print("FNs      : %d"%fn)

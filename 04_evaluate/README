@@ -1,11 +1,11 @@
 Evaluate a frame:
 
-  python evaluate.py <result_json> <benchmark_json> [<outfile>]
+  python evaluate.py <result_json> <benchmark_json> <method> [<outfile>]
 
     result_json: As created by find_divisions.py.
 
     benchmark_json: JSON file containing 'divisions' and 'non_divisions' dicts like result_json.
 
-    threshold: Consider only found divisions with a score larger than this threshold.
+    method: 'selected_points' (only on divs and non-divs) or 'selected_divisions' (only on divs, counts everything else a FP)
 
     outfile Name of JSON file to store the results. If not given, use <result_json>_<threshold>.json

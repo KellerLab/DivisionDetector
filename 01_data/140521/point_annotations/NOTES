@@ -50,6 +50,13 @@ All together
   ⇒ all_divisions.txt
   ⇒ all_non-divisions.txt
 
+AnnotatedTimePoints.xlsx
+
+  • added 2018/06/04
+  • missing frames 60, 180, 300, 420, and 480
+
+  ⇒ NOT YET MERGED
+
 Testing Benchmarks
 ==================
 

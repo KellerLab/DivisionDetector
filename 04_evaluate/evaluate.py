@@ -12,7 +12,10 @@ import numpy as np
 #
 # 15 voxels (3 in z) seems to be a good radius that captures the area of a
 # single cell
-matching_threshold = 15
+matching_threshold = 20
+
+#maximal distance in frames to consider a detection to match with a ground-truth annotation
+time_matching_threshold = 2
 
 def create_matching_costs(rec_divisions, gt_divisions, prefer_high_scores=False):
 
@@ -134,7 +137,8 @@ def evaluate_threshold(
         fps = [ l for l in gt_nondivisions.keys() if l in matched_gt_annotations ]
     elif method == 'selected_divisions':
         # unmatched REC divisions = FP
-        fps = [ l for l in rec_divisions.keys() if l not in matched_rec_annotations ]
+        #we only consider FP in frame = 360, not the other frames
+        fps = [ l for l in rec_divisions.keys() if (l not in matched_rec_annotations and (str(l)[-3:])=="360")]
     fp = len(fps)
 
     # unmatched GT division = FN
@@ -226,26 +230,50 @@ def evaluate(rec_divisions, gt_divisions, gt_nondivisions, method):
 
     return result_rows
 
-if __name__ == "__main__":
 
-    rec_file = sys.argv[1]
+if __name__ == "__main__":
+    #set folder with rec_division files
+    rec_file_folder= sys.argv[1]    
     benchmark_file = sys.argv[2]
     method = sys.argv[3]
+    #in case different contexts are in the same folder
+    context = sys.argv[4]
     assert method in ['selected_points', 'selected_divisions']
-    if len(sys.argv) > 4:
-        outfile = sys.argv[4]
+    if len(sys.argv) > 5:
+        outfile = sys.argv[5]
     else:
-        outfile = rec_file[:-5] + '_scores.json'
+        
+        outfile = rec_file_folder+'/140521_f=360_c='+context+ '_scores.json'
 
-    with open(rec_file, 'r') as f:
-        rec = json.load(f)
+    rec_file_list = []
+    for i in range(time_matching_threshold,-(time_matching_threshold+1),-1):
+        j = 360 + i
+        #print(j)
+        part = "/140521_f=%i_c="%j
+        name = rec_file_folder+part+context+".json"
+        rec_file_list.append(name)
+    #to open rec_file for 360, set time_matching_threshold = 0: this would be equivalent to matching_threshold = [20,20,4,1]
+    rec_divisions = []
+    for i in range(2*t_matching_threshold+1):
+        with open(rec_file_list[i], 'r') as f:
+            r = json.load(f)
+        frame = i+360-t_matching_threshold
+        rec_division = {
+            int(l): [div, frame] 
+                for (l, div) in r['divisions'].items()
+        }
+        rec_divisions.append(rec_division)
+    #now avoid the list and use a single rec_divisions dictionary
+
     rec_divisions = {
-        int(l): div
-        for (l, div) in rec['divisions'].items()
+        (int(str(l)+str(c[1]))): c[0]
+        for element in rec_divisions
+        for l,c in element.items()
     }
-
-    print("Read %d rec divisions"%len(rec_divisions))
-
+    print(rec_divisions.keys())
+    #print("Read %d rec divisions"%len(rec_divisions)); does not make much sense right now
+    #print(rec)
+    #print(total)
     benchmark = json.load(open(benchmark_file, 'r'))
     gt_divisions = benchmark['divisions']
     gt_nondivisions = benchmark.get('non_divisions', {})
@@ -259,7 +287,7 @@ if __name__ == "__main__":
         gt_nondivisions,
         method)
 
-    rec.update({
+    rec = {
         'scores': {
             key: [ row[key] for row in result_rows ]
             for key in [
@@ -283,9 +311,9 @@ if __name__ == "__main__":
             'num_divs': len(gt_divisions),
             'num_nondivs': len(gt_nondivisions)
         }
-    })
+    }
     # don't store divisions, files get too big otherwise
-    del rec['divisions']
+    #del rec['divisions']
 
     with open(outfile, 'w') as f:
         json.dump(rec, f, indent=2)

@@ -254,10 +254,10 @@ if __name__ == "__main__":
         rec_file_list.append(name)
     #to open rec_file for 360, set time_matching_threshold = 0: this would be equivalent to matching_threshold = [20,20,4,1]
     rec_divisions = []
-    for i in range(2*t_matching_threshold+1):
+    for i in range(2*time_matching_threshold+1):
         with open(rec_file_list[i], 'r') as f:
             r = json.load(f)
-        frame = i+360-t_matching_threshold
+        frame = i+360-time_matching_threshold
         rec_division = {
             int(l): [div, frame] 
                 for (l, div) in r['divisions'].items()
@@ -308,6 +308,7 @@ if __name__ == "__main__":
         'evaluation': {
             'evaluation_method': method,
             'matching_threshold': matching_threshold,
+            'time_matching_threshold': time_matching_threshold,
             'num_divs': len(gt_divisions),
             'num_nondivs': len(gt_nondivisions)
         }

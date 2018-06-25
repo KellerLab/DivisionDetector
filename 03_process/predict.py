@@ -110,5 +110,4 @@ if __name__ == "__main__":
     iteration = int(sys.argv[2])
     sample = sys.argv[3]
     frame = int(sys.argv[4])
-    set_verbose(False)
     predict(setup, iteration, sample, frame)

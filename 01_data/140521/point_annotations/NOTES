@@ -49,6 +49,10 @@ All together
   (via collect_all_annotations.txt)
   ⇒ all_divisions.txt
   ⇒ all_non-divisions.txt
+  ⇒ add date to all_divisions.txt and all_non-divisions.txt to track changes
+  ⇒ all_non-divisions_20180316.txt = all_non-divisions.txt in branch "master"
+  ⇒ all_divisions_20180316.txt = all_divisions_20180322.txt = all_divisions.txt in branch "master"
+  ⇒ all_non-divisions_20180622.txt = all_non-divisions.txt in branch "master" plus added negative examples using FP from setup19
 
 AnnotatedTimePoints.xlsx
 

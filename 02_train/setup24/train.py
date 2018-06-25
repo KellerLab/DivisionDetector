@@ -64,7 +64,7 @@ def create_sources(
             CsvPointsSource(
                 os.path.join(
                     data_dir,
-                    'point_annotations/all_divisions.txt'),
+                    'point_annotations/all_divisions_20180416.txt'),
                 divisions,
                 scale=voxel_size) +
             Pad(divisions, None),
@@ -73,7 +73,7 @@ def create_sources(
             CsvPointsSource(
                 os.path.join(
                     data_dir,
-                    'point_annotations/all_non-divisions.txt'),
+                    'point_annotations/all_non-divisions_20180416.txt'),
                 non_divisions,
                 scale=voxel_size) +
             Pad(non_divisions, None),
@@ -82,7 +82,7 @@ def create_sources(
             CsvPointsSource(
                 os.path.join(
                     data_dir,
-                    'point_annotations/all_divisions.txt'),
+                    'point_annotations/all_divisions_20180416.txt'),
                 divisions_center,
                 scale=voxel_size) +
             Pad(divisions_center, None),
@@ -91,7 +91,7 @@ def create_sources(
             CsvPointsSource(
                 os.path.join(
                     data_dir,
-                    'point_annotations/all_non-divisions.txt'),
+                    'point_annotations/all_non-divisions_20180416.txt'),
                 non_divisions_center,
                 scale=voxel_size) +
             Pad(non_divisions_center, None)

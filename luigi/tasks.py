@@ -196,12 +196,9 @@ class ConfigTask(luigi.Task):
 
         return tag
 
-    def output_basename(self, threshold=None):
+    def output_basename(self):
 
-        threshold_string = ''
-        if threshold is not None:
-            threshold_string = '_t=' + ('%.5f'%threshold).rstrip('0').rstrip('.')
-        basename = self.tag() + threshold_string
+        basename = self.tag()
 
         return os.path.join(
                 base_dir,
@@ -261,13 +258,13 @@ class FindDivisions(ConfigTask):
 
 class Evaluate(ConfigTask):
 
-    threshold = luigi.FloatParameter()
+    evaluation_method = luigi.Parameter()
 
     def requires(self):
         return FindDivisions(self.parameters)
 
     def outfile(self):
-        return self.output_basename(self.threshold) + '_scores.json'
+        return self.output_basename() + '_scores_%s.json'%self.evaluation_method
 
     def output(self):
 
@@ -283,8 +280,8 @@ class Evaluate(ConfigTask):
             'point_annotations',
             'test_benchmark_t=%d.json'%self.parameters['frame'])
 
-        log_out = self.output_basename(self.threshold) + '.out'
-        log_err = self.output_basename(self.threshold) + '.err'
+        log_out = self.output_basename() + '_%s.out'%self.evaluation_method
+        log_err = self.output_basename() + '_%s.err'%self.evaluation_method
         res_file = self.output_basename() + '.json'
 
         os.chdir(os.path.join(base_dir, '04_evaluate'))
@@ -297,7 +294,7 @@ class Evaluate(ConfigTask):
             '-u', 'evaluate.py',
             res_file,
             benchmark_file,
-            str(self.threshold),
+            self.evaluation_method,
             self.outfile()
         ], log_out, log_err)
 
@@ -331,10 +328,10 @@ class EvaluateCombinations(luigi.task.WrapperTask):
             parameters = { k: v for k, v in zip(range_keys, concrete_values) }
             parameters.update(other_values)
 
-            thresholds = parameters['thresholds']
-            del parameters['thresholds']
+            evaluation_method = parameters['evaluation_method']
+            del parameters['evaluation_method']
 
-            tasks += [ Evaluate(parameters, t) for t in thresholds ]
+            tasks.append(Evaluate(parameters, evaluation_method))
 
         print("EvaluateCombinations: require %d configurations"%len(tasks))
 

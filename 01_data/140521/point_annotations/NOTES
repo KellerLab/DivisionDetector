@@ -58,13 +58,25 @@ AnnotatedTimePoints.xlsx
   • missing frames 60, 180, 300, 420, and 480
 
   ⇒ NOT YET MERGED
-
-TODO (Mark): Which original file? Which frames? How merged with previous all_non-divisions_20180416?
+  
+negative_examples_20180622.xlsx
 
   • added 2018/06/22
-  • more negative examples using FP from setup19
+  • A,B,C is x,y,z
+  • D is time ⇒ frames 175, 300, 400
+  • E is false positive type:
+    1:    endoderm     
+    2:    fast cell
+    3:    space between cells
+    4:    bright cell
+    5:    schmutz (debris)
+    6:    others
 
-  ⇒ all_non-divisions_20180622.txt
+  • more negative examples using FP from setup19
+  • manual merge with all_non-divisions_20180416 
+
+⇒ all_non-divisions_20180622.txt
+  
 
 Testing Benchmarks
 ==================

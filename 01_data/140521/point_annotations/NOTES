@@ -59,12 +59,16 @@ AnnotatedTimePoints.xlsx
 
   ⇒ NOT YET MERGED
 
-TODO (Mark): Which original file? Which frames? How merged with previous all_non-divisions_20180416?
 
   • added 2018/06/22
   • more negative examples using FP from setup19
 
   ⇒ all_non-divisions_20180622.txt
+
+  • added 2018/08/22
+  • more positive examples using curated predictions from setup20 on frames 160,168,209,304
+  
+  ⇒ all_divisions_20180822.txt
 
 Testing Benchmarks
 ==================

@@ -236,6 +236,5 @@ def train_until(max_iteration):
             b.request_batch(request)
 
 if __name__ == "__main__":
-    set_verbose(False)
     iteration = int(sys.argv[1])
     train_until(iteration)

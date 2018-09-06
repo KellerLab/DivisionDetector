@@ -55,10 +55,11 @@ PointAnnotations.xlsx
 AnnotatedTimePoints.xlsx
 
   • added 2018/06/04
-  • missing frames 60, 180, 300, 420, and 480
+  • contains missing frames 60, 180, 300, 420, and 480
 
   ⇒ NOT YET MERGED
 
+Directly added by Marc:
 
   • added 2018/06/22
   • more negative examples using FP from setup19

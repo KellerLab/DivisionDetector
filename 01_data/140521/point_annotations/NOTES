@@ -52,13 +52,6 @@ PointAnnotations.xlsx
   ⇒ all_divisions_20180416.txt
   ⇒ all_non-divisions_20180416.txt
 
-AnnotatedTimePoints.xlsx
-
-  • added 2018/06/04
-  • contains missing frames 60, 180, 300, 420, and 480
-
-  ⇒ NOT YET MERGED
-
 Directly added by Marc:
 
   • added 2018/06/22
@@ -70,6 +63,24 @@ Directly added by Marc:
   • more positive examples using curated predictions from setup20 on frames 160,168,209,304
   
   ⇒ all_divisions_20180822.txt
+
+AnnotatedTimePoints.xlsx
+
+  • added 2018/06/04
+  • contains missing frames 60, 180, 300, 420, and 480
+  • rearranged into AnnotatedTimePoints.txt (integers, order of coordiantes t, z, y, x, divided z by 5 to match all_divisions format)
+
+  ⇒ added into all_divisions_20180917.txt
+
+
+Deduplication
+===============
+  • performed 2018/09/17
+  • see Jupyter notebook GroundTruthDeduplication_20180917.html in
+    /groups/scicompsoft/malinmayorc/code/DivisionDetector/01_data/140521/point_annotations
+
+  ⇒ all_training_divisions_deduplicated_20180917.txt, all_training_non-divisions_deduplicated_20180917.txt,
+    all_test_frame_360_divisions_deduplicated_20180917.txt, all_test_frame_360_non-divisions_deduplicated_20180917.txt
 
 Testing Benchmarks
 ==================

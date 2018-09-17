@@ -106,6 +106,5 @@ def render_blobs(frame):
         pipeline.request_batch(whole_request)
 
 if __name__ == "__main__":
-    set_verbose(False)
     frame = int(sys.argv[1])
     render_blobs(frame)

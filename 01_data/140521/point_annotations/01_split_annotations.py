@@ -1,3 +1,5 @@
+# script to take in a list of all the annotated points and split them into positive and negative examples.
+# writing each type of example to a different output file
 
 divisions = []
 non_divisions = []

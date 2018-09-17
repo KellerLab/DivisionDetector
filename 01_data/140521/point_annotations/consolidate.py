@@ -1,3 +1,6 @@
+#Scales the results in the z direction by 1/5, writing them back into the same file
+#Presumably should only be run once, and has already been run, to correct an annotation methodology error
+
 frames = [100, 250, 400]
 
 for frame in frames:

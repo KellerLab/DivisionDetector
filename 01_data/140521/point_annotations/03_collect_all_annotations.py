@@ -1,3 +1,6 @@
+#Script that consolidates all the annotated divisions into one file,
+# and all the annotated non-divisions into another file
+
 division_files = ['full_divisions.txt', 'sparse_divisions.txt', 'sparse_divisions_2.txt' ]
 non_division_files = ['sparse_non-divisions.txt', 'sparse_non-divisions_2.txt', 'sparse_non-divisions_3.txt']
 

@@ -1,3 +1,6 @@
+#Script that takes divisions and non-divisions from frame 360 and puts them into a single JSON file
+#for use in evaluation
+
 import json
 
 for frame in [360]:

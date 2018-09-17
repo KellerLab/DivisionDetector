@@ -1,3 +1,5 @@
+#Script for sampling random foreground points from a given file
+
 import pyklb
 import json
 import random

@@ -1,0 +1,59 @@
+# Visualizing Ground Truth in MaMuT
+
+Step 1: Use BigDataViewer plugin to open KLB file and save as XML 
+ - In Fiji, go to Plugins -> Big Data Viewer -> Open KLB
+ - Select the last time step of the data to use as a template
+(For me, this only worked for the original file, not a symlink)
+ - Manually specify pixel spacing to reflect the voxel size (for mouse embryo data, set z to 5)
+ - Save XML in this visualization folder (referencing it elsewhere may not work)
+
+Step 1.5: Gather Ground Truth in JSON or txt Format
+
+JSON
+ - JSON files must follow the structure below, and contain points in a single time frame:
+
+{ "divisions": {
+	<id>: {
+		"center": [<z>, <y>, <x>]
+		}
+	},
+"non_divisions": {
+	<id>: {
+                "center": [<z>, <y>, <x>]
+                }
+        }
+}
+
+TXT
+ - Text files should have one point per line, coordiantes within a line should be tab separated,
+and coordinates should appear in the order (t, z, y, x)
+ - If all points in a file are from the same time frame, this can be indicated on the command line,
+and the time coordiante can be ommitted from the file.
+
+Step 2: Run Annotation2MaMuT.py
+ - python Annotation2MaMuT.py --help for arguments
+ - NOTE: you can enter multiple input files in separate -i/--input arguments; each must have its
+own -t/--time and -a/--annotation-type argument. There is only one -ani argument that is
+applied to all input files.
+
+Step 3: Load into MaMuT
+ - In Fiji, go to Plugins -> MaMuT -> Open MaMuT Annotation
+ - Navigate to the output XML created by Annotation2MaMuT.py and open it
+ - (Optional) Tell it not to display tracks and limit drawing depth to 20 pixels, and
+set color by quality. You can also change the spot display radius if the spot drawings
+are covering up the image.
+ - Open the MaMuT Viewer
+ - Scroll along the bottom to the target frame, and then navigate around the image to find
+your points (press F1 for help). If you sorted by quality, positive annotations will be in red,
+and negative in blue.
+
+
+#Visualizing Predictions in MaMuT
+Similar to the process for visualizing ground truth, except:
+Step 2: run Prediction2MaMuT.py
+ - python Prediction2MaMut.py --help for arguments
+ - Note: unlike Annotation2MaMuT, this script can only visualize one frame of prediction/ground truth
+
+When viewing the predictions, quality is associated with score. Points with quality -1 and 1 are negative
+or positive ground truth annotations, respectively. The predictions should fall in between 0 and 1,
+and be color coordinated along that confidence range if you sort by quality.

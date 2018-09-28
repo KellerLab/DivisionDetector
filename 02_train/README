@@ -1,9 +1,12 @@
 For each setup
 ==============
 
-Create the network:
+Create the train and test networks:
 
-  run_docker -d funkey/mala:v0.1-pre1 python mknet.py
+  run_docker -d funkey/mala:v0.1-pre1 python mknet.py train_net
+  run_docker -d funkey/mala:v0.1-pre1 python mknet.py test_net
+
+  Note: for setups before 20, you can just run mknet.py once and it will generate both networks.
 
 Run training:
 

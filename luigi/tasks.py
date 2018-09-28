@@ -83,6 +83,35 @@ class RunTasks(luigi.WrapperTask):
     def requires(self):
         return self.tasks
 
+class MakeNetworkTask(luigi.Task):
+    experiment = luigi.Parameter()
+    setup = luigi.Parameter()
+    name = luigi.Parameter()
+
+    def output_filename(self):
+        return os.path.join(
+            base_dir,
+            '02_train',
+            str(self.setup),
+            '%s_config.json' % self.name)
+
+    def requires(self):
+        return []
+
+    def output(self):
+        return FileTarget(self.output_filename())
+
+    def run(self):
+        log_base = os.path.join(base_dir, '02_train', str(self.setup), 'mknet_%s' % self.name)
+        log_out = log_base + '.out'
+        log_err = log_base + '.err'
+        os.chdir(os.path.join(base_dir, '02_train', self.setup))
+        call([
+            'run_docker',
+            '-d', 'funkey/division_detection:v0.3',
+            'python -u mknet.py ' + self.name
+        ], log_out, log_err)
+
 class TrainTask(luigi.Task):
 
     experiment = luigi.Parameter()
@@ -98,7 +127,8 @@ class TrainTask(luigi.Task):
 
     def requires(self):
         if self.iteration == 10000:
-            return []
+            return [MakeNetworkTask(self.experiment, self.setup, "train_net"),
+                MakeNetworkTask(self.experiment, self.setup, "test_net") ]
         return TrainTask(self.experiment, self.setup, self.iteration - 10000)
 
     def output(self):
@@ -186,10 +216,6 @@ class ConfigTask(luigi.Task):
     def tag(self):
 
         parameters = dict(self.parameters)
-
-        # sanatize dicts
-        if 'find_divisions_method_args' in parameters:
-            parameters['find_divisions_method_args'] = dict(parameters['find_divisions_method_args'])
 
         dict_str = json.dumps(dict(parameters), sort_keys=True)
         tag = str(hash(dict_str))
@@ -313,12 +339,12 @@ class EvaluateCombinations(luigi.task.WrapperTask):
         # get all the values to explode
         range_values = {
             k[:-1]: v
-            for k, v in self.parameters.iteritems()
+            for k, v in self.parameters.items()
             if k in self.range_keys }
 
         other_values = {
             k: v
-            for k, v in self.parameters.iteritems()
+            for k, v in self.parameters.items()
             if k not in self.range_keys }
 
         range_keys = range_values.keys()

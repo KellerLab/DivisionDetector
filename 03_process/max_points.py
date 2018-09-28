@@ -39,7 +39,7 @@ def find_max_points(
     max_filtered = maximum_filter(predictions, footprint=sphere(radius))
 
     # for the following, we only process the center frame
-    center = predictions.shape[0]/2
+    center = predictions.shape[0]//2
 
     maxima = max_filtered[center] == predictions[center]
     print("%.3fs"%(time.time()-start))
@@ -67,7 +67,7 @@ def find_max_points(
     print("%.3fs"%(time.time()-start))
 
     centers = {
-        label: { 'center': center, 'score': max_value }
+        str(label): { 'center': center, 'score': max_value }
         for label, center, size, max_value in zip(label_ids, centers, sizes, maxima)
     }
 

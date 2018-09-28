@@ -1,6 +1,13 @@
 import tensorflow as tf
 import json
+import sys
 from unet import unet, conv_pass
+
+#Creates structure of train or test network for the setup.
+
+#Input shapes are defined as model-specific constants
+train_input_shape = (7, 60, 148, 148)
+test_input_shape = (7, 88, 292, 292)
 
 def create_network(input_shape, name):
 
@@ -59,7 +66,12 @@ def create_network(input_shape, name):
         json.dump(names, f)
 
 if __name__ == "__main__":
+    name = sys.argv[1]
 
-    create_network((7, 60, 148, 148), 'train_net')
-    create_network((7, 88, 292, 292), 'test_net')
+    if name == 'train_net':
+        create_network(train_input_shape, name)
+    elif name == 'test_net':
+        create_network(test_input_shape, name)
+    else:
+        print("Error: name must be 'train_net' or 'test_net'")
 

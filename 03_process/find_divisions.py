@@ -5,22 +5,20 @@ import json
 import sys
 import os
 import time
-from blob_centers import find_blob_centers
 from max_points import find_max_points
 from skimage.measure import block_reduce
 
-# the minimal size of a blob
-blob_size_threshold = 10
+#Applies NMS to find divisions from model output (per-voxel predictions)
 
 def find_divisions(
         setup,
         iteration,
         sample,
         frame,
-        context,
         output_filename,
-        method='blob_centers',
-        method_args=None,
+        radius,
+        sigma=None,
+        min_score_threshold=0,
         downsample=None,
         *args,
         **kwargs):
@@ -44,25 +42,19 @@ def find_divisions(
 
                 The frame in the video to find divisions for.
 
-        context (int):
-
-                How many earlier/later frames to consider for the non-maximal
-                suppression.
-
         output_filename (string):
 
                 Name of the JSON file to store the results in.
 
-        method (string):
+        radius:
+                The radius in (t,z,y,x) to consider for NMS
 
-                'blob_centers': Find blobs by thresholding, take center as
-                detection.
+        sigma:
+                Smoothing factor to apply to predictions before NMS
 
-                'max_points': Apply non-max suppression to find local maxima.
+        min_score_threshold:
 
-        method_args (dict):
-
-                Arguments passed to either ``method``.
+                Only selects local maxima with scores strictly greater than this threshold
 
         downsample (tuple, optional):
 
@@ -70,12 +62,7 @@ def find_divisions(
                 z by 3, x and y by 2).
     '''
 
-    if not method_args:
-        method_args = {}
-
-    if context > 0 and method == 'blob_centers':
-        raise RuntimeError(
-            "z-context is not yet implemented for method 'blob_centers'")
+    context = radius[0]
 
     frames = list(range(frame - context, frame + context + 1))
 
@@ -114,16 +101,10 @@ def find_divisions(
         print("new resolution of predictions: %s"%(resolution,))
 
     print("Finding detections...")
-
-    if method == 'blob_centers':
-        detections, blobs = find_blob_centers(predictions[0], resolution[1:], **method_args)
-    elif method == 'max_points':
-        detections, blobs = find_max_points(predictions, resolution, **method_args)
-    else:
-        raise RuntimeError("Unkown method %s"%method)
-
+    detections, blobs = find_max_points(predictions, resolution, radius, sigma, min_score_threshold)
     print("Storing detections...")
     start = time.time()
+
     # correct for offset and resolution
     detections = {
         label: {
@@ -143,9 +124,9 @@ def find_divisions(
             'iteration': iteration,
             'sample': sample,
             'frame': frame,
-            'context': context,
-            'find_divisions_method': method,
-            'find_divisions_method_args': method_args,
+            'radius': radius,
+            'sigma': sigma,
+            'min_score_threshold': min_score_threshold,
             'downsample': downsample,
         }
     }

@@ -27,7 +27,7 @@ def predict(setup, iteration, sample, frame):
     voxel_size = Coordinate((1, 5, 1, 1))
     input_size = Coordinate(net_config['input_shape'])*voxel_size
     output_size = Coordinate(net_config['output_shape'])*voxel_size
-    context = (input_size - output_size)/2
+    context = (input_size - output_size)//2
 
     raw = ArrayKey('RAW')
     divisions = ArrayKey('DIVISIONS')

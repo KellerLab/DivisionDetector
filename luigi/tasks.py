@@ -238,7 +238,7 @@ class FindDivisions(ConfigTask):
 
     def requires(self):
 
-        context = self.parameters.get('context', 0)
+        context = self.parameters.get('radius')[0]
 
         return [
             ProcessTask(
@@ -264,10 +264,6 @@ class FindDivisions(ConfigTask):
 
         args = dict(self.parameters)
         args['output_filename'] = self.output_basename() + '.json'
-        args['method'] = self.parameters['find_divisions_method']
-        args['method_args'] = dict(self.parameters['find_divisions_method_args'])
-        del args['find_divisions_method']
-        del args['find_divisions_method_args']
 
         with open(self.output_basename() + '.config', 'w') as f:
             json.dump(args, f)

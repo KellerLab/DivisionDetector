@@ -22,26 +22,26 @@ if __name__ == '__main__':
             # 'setup16',
             # 'setup17',
             # 'setup18',
-            'setup19',
+            # 'setup19',
+            'setup20',
+            'setup34',
+            #'setup35'
         ],
-        # 'iterations': [4000, 10000, 30000, 60000, 100000, 150000, 200000, 250000, 300000],
-        'iterations': [300000],
+        'iterations': [100000, 150000, 200000, 250000, 300000],
         'sample': '140521',
         'frame': 360,
-        'context': 2,
         'downsample': [2, 4, 4],
-        'find_divisions_method': 'max_points',
-        'find_divisions_method_args': {
-            'radius': [5, 20, 20, 20],
-            'sigma': [0.5, 1.0, 1.0, 1.0],
-            'min_score_threshold': 1e-4
-        },
+        'radiuss': [[context, 20, 20, 20] for context in range(3)],
+        'sigma': [0.5, 1.0, 1.0, 1.0],
+        'min_score_threshold': 1e-4,
         'thresholds': list(np.arange(0.0, 1.0, 0.005)),
+        'evaluation_method': 'selected_divisions'
     }
 
     range_keys = [
         'setups',
         'iterations',
+        'radiuss'
     ]
 
     set_base_dir(os.path.abspath('..'))
@@ -50,5 +50,5 @@ if __name__ == '__main__':
             [EvaluateCombinations(combinations, range_keys)],
             workers=50,
             scheduler_host='slowpoke1.int.janelia.org',
-            logging_conf_file='/groups/saalfeld/home/funkej/.luigi/logging.conf'
+            logging_conf_file='/groups/scicompsoft/home/malinmayorc/.luigi/logging.conf'
     )

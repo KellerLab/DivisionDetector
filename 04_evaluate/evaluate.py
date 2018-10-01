@@ -171,7 +171,7 @@ def evaluate_threshold(
     else:
         fscore = 0
 
-    return {
+    threshold_stats = {
         'precision': precision,
         'recall': recall,
         'f-score': fscore,
@@ -184,6 +184,7 @@ def evaluate_threshold(
         'tps': tps,
         'tns': tns
     }
+    return (threshold_stats, filtered_matches)
 
 def evaluate(rec_divisions, gt_divisions, gt_nondivisions, method):
 
@@ -212,9 +213,9 @@ def evaluate(rec_divisions, gt_divisions, gt_nondivisions, method):
     print("Evaluating thresholds %s"%thresholds)
 
     result_rows = []
+    threshold_matches = []
     for threshold in thresholds:
-
-        result_row = evaluate_threshold(
+        result_row, matches = evaluate_threshold(
             threshold,
             rec_divisions,
             gt_divisions,
@@ -223,8 +224,61 @@ def evaluate(rec_divisions, gt_divisions, gt_nondivisions, method):
         result_row['threshold'] = threshold
 
         result_rows.append(result_row)
+        threshold_matches.append(matches)
 
-    return result_rows
+
+    print("Getting points for the threshold with the highest fscore")
+    coords = best_threshold_coordinates(result_rows, threshold_matches, rec_divisions, gt_divisions)
+
+    return result_rows, coords
+
+def best_threshold_coordinates(result_rows, threshold_matches, rec_divisions, gt_divisions):
+
+    idx = find_best_threshold(result_rows)
+    if idx == None:
+        return
+
+    best_row = result_rows[idx]
+    threshold = best_row['threshold']
+    matches = threshold_matches[idx]
+    rec_matched = [rec_label for (rec_label, _ , _) in matches]
+    gt_matched = [gt_label for (_, gt_label, _) in matches]
+    true_positives = []
+    false_positives = []
+    false_negatives = []
+
+    for label, center in rec_divisions.items():
+        if center['score'] < threshold:
+            continue
+        if label in rec_matched:
+            true_positives.append(center)
+        else:
+            false_positives.append(center)
+
+    for label, center in gt_divisions.items():
+        if label not in gt_matched:
+            false_negatives.append(center)
+
+    json = {}
+    json["true_positives"] = true_positives
+    json["false_positives"] = false_positives
+    json["false_negatives"] = false_negatives
+    json["threshold"] = best_row["threshold"]
+
+    return json
+
+
+def find_best_threshold(result_rows):
+    best_fscore = 0
+    best_idx = None
+    for index, row in enumerate(result_rows):
+        fscore = row['f-score']
+        if fscore > best_fscore:
+            best_fscore = fscore
+            best_idx = index
+
+    return best_idx
+
 
 if __name__ == "__main__":
 
@@ -253,7 +307,7 @@ if __name__ == "__main__":
     print("Read %d GT divisions"%len(gt_divisions))
     print("Read %d GT non-divisions"%len(gt_nondivisions))
 
-    result_rows = evaluate(
+    result_rows, best_threshold_coords = evaluate(
         rec_divisions,
         gt_divisions,
         gt_nondivisions,
@@ -289,3 +343,7 @@ if __name__ == "__main__":
 
     with open(outfile, 'w') as f:
         json.dump(rec, f, indent=2)
+
+    coordinate_outfile = outfile[:-5] + '_best_threshold_coordinates.json'
+    with open(coordinate_outfile, 'w') as f:
+        json.dump(best_threshold_coords, f, indent=2)

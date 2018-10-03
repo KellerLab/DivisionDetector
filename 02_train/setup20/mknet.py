@@ -1,6 +1,7 @@
 import tensorflow as tf
 import json
 import sys
+import os
 from unet import unet, conv_pass
 
 #Creates structure of train or test network for the setup.
@@ -10,6 +11,9 @@ train_input_shape = (7, 60, 148, 148)
 test_input_shape = (7, 88, 292, 292)
 
 def create_network(input_shape, name):
+    output_path = "checkpoints/"
+    if not os.path.exists(output_path):
+        os.makedirs(output_path)
 
     tf.reset_default_graph()
 
@@ -47,7 +51,7 @@ def create_network(input_shape, name):
         epsilon=1e-8)
     optimizer = opt.minimize(loss)
 
-    tf.train.export_meta_graph(filename=name + '.meta')
+    tf.train.export_meta_graph(filename=os.path.join(output_path, name + '.meta'))
 
     print("input shape : %s"%(input_shape,))
     print("output shape: %s"%(output_shape,))
@@ -62,7 +66,7 @@ def create_network(input_shape, name):
         'summary': merged.name,
         'input_shape': input_shape,
         'output_shape': output_shape}
-    with open(name + '_config.json', 'w') as f:
+    with open(os.path.join(output_path, name + '_config.json'), 'w') as f:
         json.dump(names, f)
 
 if __name__ == "__main__":

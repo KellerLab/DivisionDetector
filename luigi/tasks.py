@@ -93,6 +93,7 @@ class MakeNetworkTask(luigi.Task):
             base_dir,
             '02_train',
             str(self.setup),
+            'checkpoints',
             '%s_config.json' % self.name)
 
     def requires(self):
@@ -102,7 +103,7 @@ class MakeNetworkTask(luigi.Task):
         return FileTarget(self.output_filename())
 
     def run(self):
-        log_base = os.path.join(base_dir, '02_train', str(self.setup), 'mknet_%s' % self.name)
+        log_base = os.path.join(base_dir, '02_train', str(self.setup),'logs', 'mknet_%s' % self.name)
         log_out = log_base + '.out'
         log_err = log_base + '.err'
         os.chdir(os.path.join(base_dir, '02_train', self.setup))
@@ -117,25 +118,27 @@ class TrainTask(luigi.Task):
     experiment = luigi.Parameter()
     setup = luigi.Parameter()
     iteration = luigi.IntParameter()
+    stepsize = luigi.IntParameter(default=50000)
 
     def output_filename(self):
         return os.path.join(
             base_dir,
             '02_train',
             str(self.setup),
+            'checkpoints',
             'train_net_checkpoint_%d.meta'%self.iteration)
 
     def requires(self):
-        if self.iteration == 10000:
+        if self.iteration == self.stepsize:
             return [MakeNetworkTask(self.experiment, self.setup, "train_net"),
                 MakeNetworkTask(self.experiment, self.setup, "test_net") ]
-        return TrainTask(self.experiment, self.setup, self.iteration - 10000)
+        return TrainTask(self.experiment, self.setup, self.iteration - self.stepsize)
 
     def output(self):
         return FileTarget(self.output_filename())
 
     def run(self):
-        log_base = os.path.join(base_dir, '02_train', str(self.setup), 'train_%d'%self.iteration)
+        log_base = os.path.join(base_dir, '02_train', str(self.setup),'logs', 'train_%d'%self.iteration)
         log_out = log_base + '.out'
         log_err = log_base + '.err'
         os.chdir(os.path.join(base_dir, '02_train', self.setup))

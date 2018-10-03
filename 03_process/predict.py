@@ -12,15 +12,15 @@ def predict(setup, iteration, sample, frame):
     print("Predicting divisions of setup %s, iteration %s, in sample%s "
           "frame %d"%(setup, iteration, sample, frame))
 
-    checkpoint = os.path.join('../02_train', setup, 'unet_checkpoint_%d'%iteration)
+    checkpoint = os.path.join('../02_train', setup, 'checkpoints', 'unet_checkpoint_%d'%iteration)
     if not os.path.isfile(checkpoint + '.meta'):
-        checkpoint = os.path.join('../02_train', setup, 'train_net_checkpoint_%d'%iteration)
-    graph = os.path.join('../02_train', setup, 'test_net.meta')
+        checkpoint = os.path.join('../02_train', setup, 'checkpoints', 'train_net_checkpoint_%d'%iteration)
+    graph = os.path.join('../02_train', setup, 'checkpoints', 'test_net.meta')
     if not os.path.isfile(graph):
         graph = None
-    config = os.path.join('../02_train', setup, 'test_net_config.json')
+    config = os.path.join('../02_train', setup, 'checkpoints', 'test_net_config.json')
     if not os.path.isfile(config):
-        config = os.path.join('../02_train', setup, 'net_config.json')
+        config = os.path.join('../02_train', setup, 'checkpoints', 'net_config.json')
     with open(config, 'r') as f:
         net_config = json.load(f)
 

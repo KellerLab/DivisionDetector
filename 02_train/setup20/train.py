@@ -10,6 +10,7 @@ import tensorflow as tf
 import numpy as np
 
 data_dir = '../../01_data/140521'
+checkpoint_dir = 'checkpoints'
 
 class RandomLocationExcludeTime(RandomLocation):
 
@@ -106,7 +107,7 @@ def train_until(max_iteration):
     if trained_until >= max_iteration:
         return
 
-    with open('train_net_config.json', 'r') as f:
+    with open(os.path.join(checkpoint_dir, 'train_net_config.json'), 'r') as f:
         net_config = json.load(f)
 
     # define arrays and point sets we'll need
@@ -195,7 +196,7 @@ def train_until(max_iteration):
             cache_size=40,
             num_workers=10) +
         Train(
-            'train_net',
+            os.path.join(checkpoint_dir, 'train_net'),
             optimizer=net_config['optimizer'],
             loss=net_config['loss'],
             inputs={
@@ -210,6 +211,7 @@ def train_until(max_iteration):
             },
             summary = net_config['summary'],
             log_dir ='logs',
+            save_every=50000
             ) +
 
         # visualize
@@ -224,7 +226,7 @@ def train_until(max_iteration):
                 division_balls: np.float32
             },
             output_filename='snapshot_{iteration}.hdf',
-            every=1000,
+            every=10000,
             additional_request=snapshot_request) +
         PrintProfilingStats(every=10)
     )

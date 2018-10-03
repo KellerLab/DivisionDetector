@@ -48,7 +48,7 @@ if __name__ == '__main__':
 
     luigi.build(
             [EvaluateCombinations(combinations, range_keys)],
-            workers=50,
+            workers=20,
             scheduler_host='slowpoke1.int.janelia.org',
-            logging_conf_file='/groups/scicompsoft/home/malinmayorc/.luigi/logging.conf'
+            logging_conf_file='/groups/saalfeld/home/funkej/.luigi/logging.conf'
     )

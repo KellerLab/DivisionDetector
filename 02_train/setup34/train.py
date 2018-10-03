@@ -45,13 +45,17 @@ def create_sources(
         non_divisions_center,
         voxel_size):
 
+    raw_data_filename = 'SPM00_TM000*_CM00_CM01_CHN00.fusedStack.corrected.shifted.klb'
+    pos_points_filename = 'point_annotations/all_training_divisions_deduplicated_20180917.txt'
+    neg_points_filename = 'point_annotations/all_training_non-divisions_deduplicated_20180917.txt'
+
     return (
         (
             # provide raw
             KlbSource(
                 os.path.join(
                     data_dir,
-                    'SPM00_TM000*_CM00_CM01_CHN00.fusedStack.corrected.shifted.klb'),
+                    raw_data_filename),
                 raw,
                 ArraySpec(
                     interpolatable=True,
@@ -61,7 +65,7 @@ def create_sources(
             CsvPointsSource(
                 os.path.join(
                     data_dir,
-                    'point_annotations/all_divisions_20180416.txt'),
+                    pos_points_filename),
                 divisions,
                 scale=voxel_size) +
             Pad(divisions, None),
@@ -70,7 +74,7 @@ def create_sources(
             CsvPointsSource(
                 os.path.join(
                     data_dir,
-                    'point_annotations/all_non-divisions_20180416.txt'),
+                    neg_points_filename),
                 non_divisions,
                 scale=voxel_size) +
             Pad(non_divisions, None),
@@ -79,7 +83,7 @@ def create_sources(
             CsvPointsSource(
                 os.path.join(
                     data_dir,
-                    'point_annotations/all_divisions_20180416.txt'),
+                    pos_points_filename),
                 divisions_center,
                 scale=voxel_size) +
             Pad(divisions_center, None),
@@ -88,7 +92,7 @@ def create_sources(
             CsvPointsSource(
                 os.path.join(
                     data_dir,
-                    'point_annotations/all_non-divisions_20180416.txt'),
+                    neg_points_filename),
                 non_divisions_center,
                 scale=voxel_size) +
             Pad(non_divisions_center, None)
@@ -172,6 +176,8 @@ def train_until(max_iteration):
             )
         ) +
         RandomProvider() +
+
+
 
         # augment
         ElasticAugment(

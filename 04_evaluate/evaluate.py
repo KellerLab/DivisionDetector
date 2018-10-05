@@ -14,7 +14,7 @@ import numpy as np
 # single cell
 matching_threshold = 15
 
-def create_matching_costs(rec_divisions, gt_divisions, prefer_high_scores=False):
+def create_matching_costs(rec_divisions, gt_divisions):
 
     num_recs = len(rec_divisions)
     num_gts = len(gt_divisions)
@@ -57,14 +57,12 @@ def create_matching_costs(rec_divisions, gt_divisions, prefer_high_scores=False)
             if distance > matching_threshold:
                 distance = 100*matching_threshold
 
-            if prefer_high_scores:
-                matching_costs[i][j] = 1.0 - rec_scores[i]
-            else:
-                matching_costs[i][j] = distance
+
+            matching_costs[i][j] = distance
 
     return matching_costs, rec_labels, gt_labels
 
-def match(rec, gt, prefer_high_scores=False):
+def match_hungarian(rec, gt):
     '''Match reconstructions to ground-truth. Returns filtered_matches, a list
     of tuples (label_rec, label_gt, cost) and lists of matched rec labels and
     matched gt labels.'''
@@ -95,12 +93,40 @@ def match(rec, gt, prefer_high_scores=False):
 
     return filtered_matches, matched_rec_annotations, matched_gt_annotations
 
+def match_simple(rec_divisions, gt_divisions):
+    filtered_matches = []
+    matched_rec_annotations= []
+    matched_gt_annotations = []
+
+    for gt_index, gt_div in gt_divisions:
+        for rec_index, rec_div in rec_divisions:
+            distance = np.linalg.norm(np.array(rec_div['center']) - np.array(gt_div['center']))
+            if distance <= matching_threshold:
+                matched_rec_annotations.append(rec_index)
+                matched_gt_annotations.append(gt_index)
+                filtered_matches.append((rec_index, gt_index))
+
+
+    print("%d matches found"%len(filtered_matches))
+
+    # calculate number of reused points
+    num_rec_matches = len(matched_rec_annotations)
+    num_rec_dedup = len(set(matched_rec_annotations))
+    if num_rec_dedup != num_rec_matches:
+        print("%d predicted divisions duplicated in matches"%(num_rec_matches - num_rec_dedup))
+
+    num_gt_matches = len(matched_gt_annotations)
+    num_gt_dedup = len(set(matched_gt_annotations))
+    if num_gt_dedup != num_gt_matches:
+        print("%d ground truth divisions duplicated in matches" % (num_gt_matches - num_gt_dedup))
+
+    return filtered_matches, matched_rec_annotations, matched_gt_annotations
+
 def evaluate_threshold(
         threshold,
         rec_divisions,
         gt_divisions,
-        gt_nondivisions,
-        method):
+        matching_method):
 
     rec_divisions = {
         l: div
@@ -108,33 +134,22 @@ def evaluate_threshold(
         if div['score'] >= threshold
     }
 
-    if method == 'selected_points':
-
-        # create a dictionary of all annotations
-        gt_annotations = dict(gt_divisions)
-        gt_annotations.update(gt_nondivisions)
-
-        assert len(gt_annotations) == len(gt_divisions) + len(gt_nondivisions), (
-            "divisions and non-divisions should not share label IDs")
-
-        # match reconstruction to both divisions and non-divisions
-        filtered_matches, matched_rec_annotations, matched_gt_annotations = match(
-            rec_divisions,
-            gt_annotations)
-
-    elif method == 'selected_divisions':
+    if matching_method == 'hungarian':
 
         # match reconstruction only to divisions
-        filtered_matches, matched_rec_annotations, matched_gt_annotations = match(
+        filtered_matches, matched_rec_annotations, matched_gt_annotations = match_hungarian(
             rec_divisions,
             gt_divisions)
 
-    if method == 'selected_points':
-        # matched GT non-division = FP
-        fps = [ l for l in gt_nondivisions.keys() if l in matched_gt_annotations ]
-    elif method == 'selected_divisions':
-        # unmatched REC divisions = FP
-        fps = [ l for l in rec_divisions.keys() if l not in matched_rec_annotations ]
+    elif matching_method == 'simple':
+        # match reconstruction only to divisions
+        filtered_matches, matched_rec_annotations, matched_gt_annotations = match_simple(
+            rec_divisions,
+            gt_divisions)
+
+
+    # unmatched REC divisions = FP
+    fps = [ l for l in rec_divisions.keys() if l not in matched_rec_annotations ]
     fp = len(fps)
 
     # unmatched GT division = FN
@@ -145,24 +160,16 @@ def evaluate_threshold(
     tps = [ l for l in gt_divisions.keys() if l in matched_gt_annotations ]
     tp = len(tps)
 
-    if method == 'selected_points':
-        # unmatched GT non-divisions = TN
-        tns = [ l for l in gt_nondivisions.keys() if l not in matched_gt_annotations ]
-        tn = len(tns)
-    elif method == 'selected_divisions':
-        # TNs can not be counted (this is where this method is only an
-        # approximation)
-        tns = []
-        tn = np.nan
+
+    # TNs can not be counted (this is where this method is only an
+    # approximation)
+    tns = []
+    tn = np.nan
 
     # all positives
     n = len(gt_divisions)
     assert tp + fn == n
 
-    if method == 'selected_points':
-        # all negatives
-        m = len(gt_nondivisions)
-        assert tn + fp == m
 
     precision = float(tp)/(tp + fp) if tp + fp > 0 else 0.0
     recall = float(tp)/(tp + fn) if tp + fn > 0 else 0.0
@@ -186,25 +193,16 @@ def evaluate_threshold(
     }
     return (threshold_stats, filtered_matches)
 
-def evaluate(rec_divisions, gt_divisions, gt_nondivisions, method):
+def evaluate(rec_divisions, gt_divisions, gt_nondivisions, matching_method):
 
-    if method == 'selected_divisions':
+    matching_function = match_hungarian if matching_method == 'hungarian' else match_simple
 
-        # get high-score matches between rec and gt_divisions to determine thresholds
-        _, matched_rec_annotations, _ = match(
-            rec_divisions,
-            gt_divisions,
-            prefer_high_scores=True)
 
-    if method == 'selected_points':
+    # get matches between rec and gt_divisions to determine thresholds
+    _, matched_rec_annotations, _ = matching_function(
+        rec_divisions,
+        gt_divisions)
 
-        # also include thresholds for non-divisions
-        gt_annotations = dict(gt_divisions)
-        gt_annotations.update(gt_nondivisions)
-
-        _, matched_rec_annotations, _ = match(
-            rec_divisions,
-            gt_annotations)
 
     thresholds = np.array(sorted([
         rec_divisions[l]['score']
@@ -220,7 +218,7 @@ def evaluate(rec_divisions, gt_divisions, gt_nondivisions, method):
             rec_divisions,
             gt_divisions,
             gt_nondivisions,
-            method)
+            matching_method)
         result_row['threshold'] = threshold
 
         result_rows.append(result_row)
@@ -284,8 +282,8 @@ if __name__ == "__main__":
 
     rec_file = sys.argv[1]
     benchmark_file = sys.argv[2]
-    method = sys.argv[3]
-    assert method in ['selected_points', 'selected_divisions']
+    matching_method = sys.argv[3]
+    assert matching_method in ['hungarian', 'simple']
     if len(sys.argv) > 4:
         outfile = sys.argv[4]
     else:
@@ -311,7 +309,7 @@ if __name__ == "__main__":
         rec_divisions,
         gt_divisions,
         gt_nondivisions,
-        method)
+        matching_method)
 
     rec.update({
         'scores': {
@@ -332,7 +330,7 @@ if __name__ == "__main__":
             ]
         },
         'evaluation': {
-            'evaluation_method': method,
+            'matching_method': matching_method,
             'matching_threshold': matching_threshold,
             'num_divs': len(gt_divisions),
             'num_nondivs': len(gt_nondivisions)

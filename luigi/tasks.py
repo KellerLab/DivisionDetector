@@ -5,6 +5,8 @@ import json
 from targets import *
 from subprocess import Popen, check_output, CalledProcessError, STDOUT
 
+singularity=True
+
 base_dir = '.'
 def set_base_dir(d):
     global base_dir
@@ -107,9 +109,11 @@ class MakeNetworkTask(luigi.Task):
         log_out = log_base + '.out'
         log_err = log_base + '.err'
         os.chdir(os.path.join(base_dir, '02_train', self.setup))
+
+        dockercommand = "run_docker -d funkey/division_detection:v0.3"
+        singularitycommand = "run_singularity -s ../../division_detection.v0.3.img"
         call([
-            'run_docker',
-            '-d', 'funkey/division_detection:v0.3',
+            singularitycommand if singularity else dockercommand,
             'python -u mknet.py ' + self.name
         ], log_out, log_err)
 
@@ -142,11 +146,13 @@ class TrainTask(luigi.Task):
         log_out = log_base + '.out'
         log_err = log_base + '.err'
         os.chdir(os.path.join(base_dir, '02_train', self.setup))
+        dockercommand = "-d funkey/division_detection:v0.3"
+        singularitycommand = "run_singularity -s ../../division_detection.v0.3.img"
         call([
             'run_lsf',
             '-c', '10',
             '-g', '1',
-            '-d', 'funkey/division_detection:v0.3',
+            singularitycommand if singularity else dockercommand,
             'python -u train.py ' + str(self.iteration)
         ], log_out, log_err)
 
@@ -190,12 +196,15 @@ class ProcessTask(luigi.Task):
         log_out = log_base + '.out'
         log_err = log_base + '.err'
         os.chdir(os.path.join(base_dir, '03_process'))
+
+        dockercommand = "-d funkey/division_detection:v0.3"
+        singularitycommand = "run_singularity -s ../division_detection.v0.3.img"
         call([
             'run_lsf',
             '-c', '2',
             '-g', '1',
             '-m', '10000',
-            '-d', 'funkey/division_detection:v0.3',
+            singularitycommand if singularity else dockercommand,
             'python -u predict.py ' + \
                     self.setup + ' ' + \
                     str(self.iteration) + ' ' + \

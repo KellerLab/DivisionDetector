@@ -25,6 +25,9 @@ def call(command, log_out, log_err):
 
     print("Calling %s, logging to %s"%(' '.join(command), log_out))
 
+    mkdirs(os.path.dirname(log_out))
+    mkdirs(os.path.dirname(log_err))
+
     with open(log_out, 'w') as stdout:
         with open(log_err, 'w') as stderr:
             process = Popen(command, stdout=stdout, stderr=stderr)
@@ -110,12 +113,12 @@ class MakeNetworkTask(luigi.Task):
         log_err = log_base + '.err'
         os.chdir(os.path.join(base_dir, '02_train', self.setup))
 
-        dockercommand = "run_docker -d funkey/division_detection:v0.3"
-        singularitycommand = "run_singularity -s ../../division_detection.v0.3.img"
-        call([
-            singularitycommand if singularity else dockercommand,
-            'python -u mknet.py ' + self.name
-        ], log_out, log_err)
+        dockercommand = ["run_docker", "-d", "funkey/division_detection:v0.3"]
+        singularitycommand = ["run_singularity", "-s", "../../division_detection.v0.3.img"]
+        cmd = singularitycommand if singularity else dockercommand
+        cmd.append(
+            'python -u mknet.py ' + self.name)
+        call(cmd, log_out, log_err)
 
 class TrainTask(luigi.Task):
 
@@ -146,15 +149,16 @@ class TrainTask(luigi.Task):
         log_out = log_base + '.out'
         log_err = log_base + '.err'
         os.chdir(os.path.join(base_dir, '02_train', self.setup))
-        dockercommand = "-d funkey/division_detection:v0.3"
-        singularitycommand = "run_singularity -s ../../division_detection.v0.3.img"
-        call([
+        dockercommand = ["run_docker", "-d", "funkey/division_detection:v0.3"]
+        singularitycommand = ["run_singularity", "-s", "../../division_detection.v0.3.img"]
+        cmd = [
             'run_lsf',
             '-c', '10',
-            '-g', '1',
-            singularitycommand if singularity else dockercommand,
-            'python -u train.py ' + str(self.iteration)
-        ], log_out, log_err)
+            '-g', '1',]
+        cmd.extend(singularitycommand if singularity else dockercommand)
+        cmd.append(
+            'python -u train.py ' + str(self.iteration))
+        call(cmd, log_out, log_err)
 
 class ProcessTask(luigi.Task):
 
@@ -226,11 +230,24 @@ class ConfigTask(luigi.Task):
         return self.parameters['iteration']
 
     def tag(self):
+        name_parameters=['sample',
+                         'frame',
+                         'radius',
+                         # 'downsample',
+                         # 'sigma',
+                         # 'min_score_threshold'
+                         ]
+        tag = ""
+        for parameter in name_parameters:
+            val = self.parameters[parameter]
+            if hasattr(val, '__iter__'):
+                for subval in val:
+                    tag += str(subval)
+            else:
+                tag += str(val)
+            tag += "_"
 
-        parameters = dict(self.parameters)
-
-        dict_str = json.dumps(dict(parameters), sort_keys=True)
-        tag = str(hash(dict_str))
+        tag = tag[:-1]
 
         return tag
 
@@ -292,13 +309,13 @@ class FindDivisions(ConfigTask):
 
 class Evaluate(ConfigTask):
 
-    evaluation_method = luigi.Parameter()
+    matching_method = luigi.Parameter()
 
     def requires(self):
         return FindDivisions(self.parameters)
 
     def outfile(self):
-        return self.output_basename() + '_scores_%s.json'%self.evaluation_method
+        return self.output_basename() + '_scores_%s.json'%self.matching_method
 
     def output(self):
 
@@ -314,8 +331,8 @@ class Evaluate(ConfigTask):
             'point_annotations',
             'test_benchmark_t=%d.json'%self.parameters['frame'])
 
-        log_out = self.output_basename() + '_%s.out'%self.evaluation_method
-        log_err = self.output_basename() + '_%s.err'%self.evaluation_method
+        log_out = self.output_basename() + '_%s.out'%self.matching_method
+        log_err = self.output_basename() + '_%s.err'%self.matching_method
         res_file = self.output_basename() + '.json'
 
         os.chdir(os.path.join(base_dir, '04_evaluate'))
@@ -328,7 +345,7 @@ class Evaluate(ConfigTask):
             '-u', 'evaluate.py',
             res_file,
             benchmark_file,
-            self.evaluation_method,
+            self.matching_method,
             self.outfile()
         ], log_out, log_err)
 
@@ -362,10 +379,10 @@ class EvaluateCombinations(luigi.task.WrapperTask):
             parameters = { k: v for k, v in zip(range_keys, concrete_values) }
             parameters.update(other_values)
 
-            evaluation_method = parameters['evaluation_method']
-            del parameters['evaluation_method']
+            matching_method = parameters['matching_method']
+            del parameters['matching_method']
 
-            tasks.append(Evaluate(parameters, evaluation_method))
+            tasks.append(Evaluate(parameters, matching_method))
 
         print("EvaluateCombinations: require %d configurations"%len(tasks))
 

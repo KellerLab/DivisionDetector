@@ -46,13 +46,13 @@ def find_divisions(
 
                 Name of the JSON file to store the results in.
 
-        radius:
+        radius (tuple):
                 The radius in (t,z,y,x) to consider for NMS
 
-        sigma:
+        sigma (tuple):
                 Smoothing factor to apply to predictions before NMS
 
-        min_score_threshold:
+        min_score_threshold (float):
 
                 Only selects local maxima with scores strictly greater than this threshold
 

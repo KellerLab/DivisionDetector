@@ -1,17 +1,64 @@
+from __future__ import division
 import numpy as np
 import time
 import math
 from scipy.ndimage import measurements, label, maximum_filter
 from scipy.ndimage.filters import gaussian_filter
 
-def sphere(radius):
 
+def sphere(radius):
+    """ Creates a mask (np array of boolean values) that is
+    true when the point is within the sphere described by radius,
+    and false otherwise.
+
+    :param radius: a tuple with the same number of entries as dimensions in the image
+    :return: an np array representing a mask to be used as the footprint in maximum_filter function
+    """
     grid = np.ogrid[tuple(slice(-r, r + 1) for r in radius)]
     dist = sum([
-        a.astype(np.float)**2/r**2
+        a.astype(np.float)**2/r**2 if r > 0 else 0
         for a, r in zip(grid, radius)
     ])
     return (dist <= 1)
+
+
+def smooth(predictions, resolution, sigma):
+    """ Smooths the predictions using a multidimensional gaussian filter with parameter sigma"""
+    print("Smoothing predictions...")
+    sigma = tuple(float(s) / r for s, r in zip(sigma, resolution))
+    print("voxel-sigma: %s" % (sigma,))
+    start = time.time()
+    predictions = gaussian_filter(predictions, sigma, mode='constant')
+    print("%.3fs" % (time.time() - start))
+    return predictions
+
+
+def find_maxima(predictions, resolution, radius):
+    """ Creates a mask (np array of boolean values) that is true
+    when the point is a local maxima in the sphere described by radius,
+    and false otherwise."""
+    print("Finding maxima...")
+    start = time.time()
+    radius = tuple(int(math.ceil(float(ra) / re)) for ra, re in zip(radius, resolution))
+    print("voxel-radius: %s" % (radius,))
+    max_filtered = maximum_filter(predictions, footprint=sphere(radius))
+    maxima = max_filtered == predictions
+    print("%.3fs" % (time.time() - start))
+    return maxima
+
+
+def apply_nms(predictions, maxima):
+    """Takes the maxima mask and returns the center frame of predictions with the
+    non-maximal points set to zero """
+    print("Applying NMS...")
+    start = time.time()
+    center = predictions.shape[0] // 2
+    maxima = maxima[center]
+    predictions_filtered = np.zeros_like(predictions[center])
+    predictions_filtered[maxima] = predictions[center][maxima]
+    print("%.3fs" % (time.time() - start))
+    return predictions_filtered
+
 
 def find_max_points(
         predictions,
@@ -25,30 +72,10 @@ def find_max_points(
 
     # smooth predictions
     if sigma is not None:
-        print("Smoothing predictions...")
-        sigma = tuple(float(s)/r for s, r in zip(sigma, resolution))
-        print("voxel-sigma: %s"%(sigma,))
-        start = time.time()
-        predictions = gaussian_filter(predictions, sigma, mode='constant')
-        print("%.3fs"%(time.time()-start))
+        predictions = smooth(predictions, resolution, sigma)
 
-    print("Finding maxima...")
-    start = time.time()
-    radius = tuple(int(math.ceil(float(ra)/re)) for ra, re in zip(radius, resolution))
-    print("voxel-radius: %s"%(radius,))
-    max_filtered = maximum_filter(predictions, footprint=sphere(radius))
-
-    # for the following, we only process the center frame
-    center = predictions.shape[0]//2
-
-    maxima = max_filtered[center] == predictions[center]
-    print("%.3fs"%(time.time()-start))
-
-    print("Applying NMS...")
-    start = time.time()
-    predictions_filtered = np.zeros_like(predictions[center])
-    predictions_filtered[maxima] = predictions[center][maxima]
-    print("%.3fs"%(time.time()-start))
+    maxima = find_maxima(predictions, resolution, radius)
+    predictions_filtered = apply_nms(predictions, maxima)
 
     print("Finding blobs...")
     start = time.time()

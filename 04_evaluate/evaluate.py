@@ -98,13 +98,14 @@ def match_simple(rec_divisions, gt_divisions):
     matched_rec_annotations= []
     matched_gt_annotations = []
 
-    for gt_index, gt_div in gt_divisions:
-        for rec_index, rec_div in rec_divisions:
+    for gt_index, gt_div in gt_divisions.items():
+        for rec_index, rec_div in rec_divisions.items():
             distance = np.linalg.norm(np.array(rec_div['center']) - np.array(gt_div['center']))
             if distance <= matching_threshold:
                 matched_rec_annotations.append(rec_index)
                 matched_gt_annotations.append(gt_index)
-                filtered_matches.append((rec_index, gt_index))
+                #need dummy cost to match hungarian results format
+                filtered_matches.append((rec_index, gt_index, 0.0))
 
 
     print("%d matches found"%len(filtered_matches))
@@ -160,12 +161,6 @@ def evaluate_threshold(
     tps = [ l for l in gt_divisions.keys() if l in matched_gt_annotations ]
     tp = len(tps)
 
-
-    # TNs can not be counted (this is where this method is only an
-    # approximation)
-    tns = []
-    tn = np.nan
-
     # all positives
     n = len(gt_divisions)
     assert tp + fn == n
@@ -185,13 +180,11 @@ def evaluate_threshold(
         'fp': fp,
         'fn': fn,
         'tp': tp,
-        'tn': tn,
-        'fps': fps,
-        'fns': fns,
-        'tps': tps,
-        'tns': tns
+        # 'fps': fps,
+        # 'fns': fns,
+        # 'tps': tps,
     }
-    return (threshold_stats, filtered_matches)
+    return threshold_stats
 
 def evaluate(rec_divisions, gt_divisions, gt_nondivisions, matching_method):
 
@@ -211,57 +204,37 @@ def evaluate(rec_divisions, gt_divisions, gt_nondivisions, matching_method):
     print("Evaluating thresholds %s"%thresholds)
 
     result_rows = []
-    threshold_matches = []
     for threshold in thresholds:
-        result_row, matches = evaluate_threshold(
+        result_row = evaluate_threshold(
             threshold,
             rec_divisions,
             gt_divisions,
-            gt_nondivisions,
             matching_method)
         result_row['threshold'] = threshold
 
         result_rows.append(result_row)
-        threshold_matches.append(matches)
 
 
     print("Getting points for the threshold with the highest fscore")
-    coords = best_threshold_coordinates(result_rows, threshold_matches, rec_divisions, gt_divisions)
+    coords = best_threshold_coordinates(result_rows, rec_divisions)
 
     return result_rows, coords
 
-def best_threshold_coordinates(result_rows, threshold_matches, rec_divisions, gt_divisions):
+def best_threshold_coordinates(result_rows, rec_divisions):
 
     idx = find_best_threshold(result_rows)
-    if idx == None:
+    if not idx:
         return
 
     best_row = result_rows[idx]
     threshold = best_row['threshold']
-    matches = threshold_matches[idx]
-    rec_matched = [rec_label for (rec_label, _ , _) in matches]
-    gt_matched = [gt_label for (_, gt_label, _) in matches]
-    true_positives = []
-    false_positives = []
-    false_negatives = []
+    divisions = [
+        div
+        for _, div in rec_divisions.items()
+        if div['score'] >= threshold
+    ]
 
-    for label, center in rec_divisions.items():
-        if center['score'] < threshold:
-            continue
-        if label in rec_matched:
-            true_positives.append(center)
-        else:
-            false_positives.append(center)
-
-    for label, center in gt_divisions.items():
-        if label not in gt_matched:
-            false_negatives.append(center)
-
-    json = {}
-    json["true_positives"] = true_positives
-    json["false_positives"] = false_positives
-    json["false_negatives"] = false_negatives
-    json["threshold"] = best_row["threshold"]
+    json = {'divisions': divisions, 'threshold':threshold}
 
     return json
 
@@ -322,11 +295,9 @@ if __name__ == "__main__":
                 'fp',
                 'fn',
                 'tp',
-                'tn',
-                'fps',
-                'fns',
-                'tps',
-                'tns',
+                # 'fps',
+                # 'fns',
+                # 'tps',
             ]
         },
         'evaluation': {
